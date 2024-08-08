@@ -1,0 +1,11 @@
+{
+	"prefix":"s.",
+	"color":"0x00ffee",
+  "owners":[800255014463078462],
+  "commands_list":[
+    "help - 現在使っているコマンド\n",
+"kick,","ban - ユーザーをkick,banできる\n",
+"clear [数字], clear_all - メッセージを削除できる\n",
+"eew,","eew2 - 地震情報を表示する"
+  ]
+}
