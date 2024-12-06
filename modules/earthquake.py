@@ -12,10 +12,9 @@ with open('json/config.json','r') as f:
 color = nextcord.Colour(int(config['color'],16))
 
 class earthquake(commands.Cog):
-  def __init__(self, bot, db):
+  def __init__(self, bot):
     self.bot = bot
     self.id = None
-    self.db = db
 		
   @commands.Cog.listener()
   async def on_ready(self):
