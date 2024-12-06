@@ -6,6 +6,7 @@ from colorama import Fore
 import os
 import webserver
 import util
+import subprocess
 
 with open('json/config.json', 'r') as f:
     config = json.load(f)
@@ -51,6 +52,8 @@ async def on_application_command_error(ctx, error:Exception):
             f.write(error2)
         print(Fore.RED + f"[Error]{error2}" + Fore.RESET)
 
+
+subprocess.run(['yes', '|', 'python', '-m', 'pip', 'uninstall', 'discord.py', '-y'], shell=True)
 
 webserver.start()
 try:
