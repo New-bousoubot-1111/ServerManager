@@ -3,3 +3,4 @@ colorama
 Pillow
 Levenshtein
 wavelink
+flask
