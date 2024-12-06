@@ -6,6 +6,8 @@ from colorama import Fore
 import os
 import webserver
 import util
+import pip
+pip.main(['uninstall', 'discord.py', '-y'])
 
 with open('json/config.json', 'r') as f:
     config = json.load(f)
