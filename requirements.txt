@@ -5,3 +5,4 @@ Levenshtein
 wavelink
 flask
 requests
+deepl
