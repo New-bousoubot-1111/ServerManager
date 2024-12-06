@@ -23,7 +23,6 @@ class owners(commands.Cog):
   @commands.Cog.listener()
   async def on_ready(self):
     print(Fore.BLUE + "|owner         |" + Fore.RESET)
-    print(Fore.BLUE + "|--------------|" + Fore.RESET)
     global start_time
     start_time = time.time()
     
