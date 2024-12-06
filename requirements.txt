@@ -3,4 +3,3 @@ colorama
 Pillow
 Levenshtein
 wavelink
-some-other-library
