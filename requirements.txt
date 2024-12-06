@@ -6,3 +6,4 @@ wavelink
 flask
 requests
 deepl
+replit
