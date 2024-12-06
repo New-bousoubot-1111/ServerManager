@@ -22,85 +22,62 @@ class earthquake(commands.Cog):
     self.eew_check.start()
     self.eew_info.start()
     
-    
-  if 'reported_nums' not in db:
-    db['reported_nums'] = json.dumps([])
-    
   #緊急地震速報
-@tasks.loop(seconds=2)
-async def eew_check(self):
-    # 初期化処理
-    if 'reported_nums' not in db:
-        db['reported_nums'] = json.dumps([])  # 空リストで初期化
-    if 'cache' not in db:
-        db['cache'] = json.dumps({"report_time": ""})  # キャッシュを初期化
-
+  @tasks.loop(seconds=2)
+  async def eew_check(self):
     now = util.eew_now()
     if now == 0:
-        return
-
+      return		
     res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
     if res.status_code == 200:
-        data = res.json()
+      data = res.json()
+      # 追加：レポートが以前に送信したものかどうかを確認
+      report_timestamp = datetime.strptime(data['report_time'], "%Y-%m-%dT%H:%M:%S%z")
+      if self.last_report_timestamp is not None and report_timestamp <= self.last_report_timestamp:
+        return
+      self.last_report_timestamp = report_timestamp
+      cache = json.loads(db['cache'])			
+      if data['result']['message'] == "":
+        if cache['report_time'] != data['report_time']:
+          eew_channel = self.bot.get_channel(int(config['eew_channel']))
+          image = False					
+          if data['is_training'] == True:
+            return
+          if data['is_cancel'] == True:
+            embed=nextcord.Embed(title="緊急地震速報がキャンセルされました",description="先ほどの緊急地震速報はキャンセルされました",color=color)
+            await eew_channel.send(embed=embed)					
+            return
+          if data['alertflg'] == "予報":
+            start_text = ""					
+            if data['is_final'] == False:
+              title = f"緊急地震速報 第{data['report_num']}報(予報)"
+              color2 = 0x00ffee #ブルー
+            else:
+              title = f"緊急地震速報 最終報(予報)"
+              color2 = 0x00ffee #ブルー
+              image = True						
+            if data['calcintensity'] in ["5強","6弱","6強","7"]:
+              start_text = ""						
+          if data['alertflg'] == "警報":
+            start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"	
+            if data['is_final'] == False:					
+              title = f"緊急地震速報 第{data['report_num']}報(警報)"
+              color2 = 0xff0000 #レッド
+            else:
+              title = f"緊急地震速報 最終報(警報)"
+              color2 = 0xff0000 #レッド
+              image = True						
 
-        reported_nums = json.loads(db['reported_nums'])
-        report_num = data['report_num']
-
-        if report_num not in reported_nums:
-            if len(reported_nums) >= 100:
-                # リストが最大長に達したら、一番古いエントリを削除
-                reported_nums.pop(0)
-
-            reported_nums.append(report_num)
-            db['reported_nums'] = json.dumps(reported_nums)
-
-            cache = json.loads(db['cache'])
-            if data['result']['message'] == "" and cache['report_time'] != data['report_time']:
-                eew_channel = self.bot.get_channel(int(config['eew_channel']))
-                image = False
-                if data['is_training']:
-                    return
-
-                if data['is_cancel']:
-                    embed = nextcord.Embed(
-                        title="緊急地震速報がキャンセルされました",
-                        description="先ほどの緊急地震速報はキャンセルされました",
-                        color=0x00ffee,
-                    )
-                    await eew_channel.send(embed=embed)
-                    return
-
-                # 通知のためのコード
-                alertdict = {
-                    "予報": {"color": 0x00ffee, "prefix": ""},
-                    "警報": {
-                        "color": 0xff0000,
-                        "prefix": "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n",
-                    },
-                }
-                alertprop = alertdict[data['alertflg']]
-                title = (
-                    f"緊急地震速報 第{data['report_num']}報({data['alertflg']})"
-                    if not data['is_final']
-                    else f"緊急地震速報 最終報({data['alertflg']})"
-                )
-                if data['is_final']:
-                    image = True
-
-                time = util.eew_time()
-                time2 = util.eew_origin_time(data['origin_time'])
-                description = (
-                    f"{alertprop['prefix']}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。"
-                    f"最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、"
-                    f"マグニチュードは**{data['magunitude']}**と推定されます。"
-                )
-                embed = nextcord.Embed(title=title, description=description, color=alertprop['color'])
-                await eew_channel.send(embed=embed)
-                if data['report_num'] == "1" or image:
-                    await util.eew_image(eew_channel)
-
-  
-
+          time = util.eew_time()
+          time2 = util.eew_origin_time(data['origin_time'])
+          embed=nextcord.Embed(title=title,description=f"{start_text}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。",color=color2)
+          await eew_channel.send(embed=embed)
+          if data['report_num'] == "1":
+            image = True
+          if image == True:					
+            await util.eew_image(eew_channel)
+        db['cache'] = str(data)
+        db['cache'] = db['cache'].replace("True","true").replace("False","false").replace("'",'"')
 
   #地震情報
   @tasks.loop(seconds=2)
