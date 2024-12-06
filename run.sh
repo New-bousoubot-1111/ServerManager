@@ -1,3 +1,3 @@
-pip install -r requirements.txt
+-m pip install -r requirements.txt
 clear
 python3 main.py
