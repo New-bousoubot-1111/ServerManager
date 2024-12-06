@@ -4,3 +4,4 @@ Pillow
 Levenshtein
 wavelink
 flask
+requests
