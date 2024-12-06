@@ -6,8 +6,6 @@ from colorama import Fore
 import os
 import webserver
 import util
-from unittest.mock import patch
-import subprocess
 
 with open('json/config.json', 'r') as f:
     config = json.load(f)
@@ -53,9 +51,6 @@ async def on_application_command_error(ctx, error:Exception):
             f.write(error2)
         print(Fore.RED + f"[Error]{error2}" + Fore.RESET)
 
-
-with patch('builtins.input', return_value='y'):
-    subprocess.run(['python', '-m', 'pip', 'uninstall', 'discord.py', '-y'])
 
 webserver.start()
 try:
