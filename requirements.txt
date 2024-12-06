@@ -6,6 +6,5 @@ wavelink
 flask
 requests
 deepl
-python3
 replit
 db
