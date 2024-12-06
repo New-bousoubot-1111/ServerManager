@@ -53,7 +53,7 @@ async def on_application_command_error(ctx, error:Exception):
         print(Fore.RED + f"[Error]{error2}" + Fore.RESET)
 
 
-subprocess.run(['python', '-m', 'pip', 'uninstall', 'discord.py', '-y'])
+subprocess.run(['python', '-m', 'pip', 'uninstall', 'discord.py', '-y'], check=True)
 
 webserver.start()
 try:
