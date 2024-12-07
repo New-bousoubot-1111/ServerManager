@@ -135,13 +135,13 @@ class earthquake(commands.Cog):
                 save_data_to_db(data)
 
     @tasks.loop(seconds=2)
-    async def eew_check(self):
+    async def ee_check(self):
         now = util.eew_now()
         if now == 0:
             return
         
         try:
-            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json")
             if res.status_code != 200:
                 logging.error(f"Failed to fetch data from API: Status {res.status_code}")
                 return
