@@ -12,6 +12,13 @@ cache = json.loads(os.getenv("CACHE", '{"sent_reports": []}'))
 cache["sent_reports"].append("new_report_time")
 os.environ["CACHE"] = json.dumps(cache)
 
+# 初期化するキャッシュデータ
+initial_cache = {"sent_reports": []}
+# cache.json ファイルに書き込む
+with open("json/cache.json", "w") as f:
+    json.dump(initial_cache, f, indent=4)
+print("キャッシュが初期化されました: cache.json に保存されました。")
+
 with open('json/config.json','r') as f:
 	config = json.load(f)
 
