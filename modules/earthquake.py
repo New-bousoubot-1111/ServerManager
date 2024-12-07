@@ -9,6 +9,7 @@ import util
 
 # PostgreSQL接続情報（Railwayの環境変数を使用）
 DATABASE_URL = os.getenv('DATABASE_URL')  # Railwayで設定した環境変数
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
 # データベース接続
 def connect_db():
@@ -53,6 +54,7 @@ def test_db_connection():
         conn.close()
     except Exception as e:
         print("Error connecting to the database:", e)
+        print("DATABASE_URL:", DATABASE_URL)
 
 # コードの実行時に確認してみてください
 test_db_connection()
