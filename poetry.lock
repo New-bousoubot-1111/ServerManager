@@ -479,14 +479,6 @@ pycryptodomex = ">=3.12.0,<4.0.0"
 [package.extras]
 docs = ["Sphinx[docs] (>=4.3.2,<6.0.0)", "sphinx-autodoc-typehints[docs] (==1.12.0)", "sphinx-rtd-theme[docs] (>=1.0.0,<2.0.0)"]
 
-[[package]]
-name = "replit"
-version = "3.2.5"
-description = "A library for interacting with features of repl.it"
-category = "main"
-optional = false
-python-versions = ">=3.8,<4.0"
-
 [package.dependencies]
 aiohttp = ">=3.6.2,<4.0.0"
 Flask = ">=2.0.0,<3.0.0"
