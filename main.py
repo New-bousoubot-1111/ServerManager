@@ -7,11 +7,6 @@ import os
 import webserver
 import util
 import subprocess
-from dotenv import load_dotenv
-
-load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL')
-print("DATABASE_URL:", DATABASE_URL)
 
 try:
     # pip3 uninstall discord.py を実行
