@@ -7,4 +7,3 @@ flask
 requests
 deepl
 psycopg2
-dotenv
