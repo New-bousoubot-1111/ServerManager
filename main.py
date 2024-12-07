@@ -14,6 +14,12 @@ try:
     print("discord.py のアンインストールに成功しました。")
 except subprocess.CalledProcessError as e:
     print("アンインストール中にエラーが発生しました:", e)
+try:
+    # pip3 uninstall discord.py を実行
+    subprocess.check_call(["python3", "-m", "pip", "uninstall", "replit", "-y"])
+    print("replit のアンインストールに成功しました。")
+except subprocess.CalledProcessError as e:
+    print("アンインストール中にエラーが発生しました:", e)
 
 with open('json/config.json', 'r') as f:
     config = json.load(f)
