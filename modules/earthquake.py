@@ -4,6 +4,13 @@ import json
 import requests
 from colorama import Fore
 import util
+import os
+
+# 環境変数からキャッシュを取得
+cache = json.loads(os.getenv("CACHE", '{"sent_reports": []}'))
+# 変更後にキャッシュを更新
+cache["sent_reports"].append("new_report_time")
+os.environ["CACHE"] = json.dumps(cache)
 
 with open('json/config.json','r') as f:
 	config = json.load(f)
