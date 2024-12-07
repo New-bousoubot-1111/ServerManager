@@ -6,18 +6,17 @@ from colorama import Fore
 import util
 import os
 
-# 環境変数からキャッシュを取得
-cache = json.loads(os.getenv("CACHE", '{"sent_reports": []}'))
-# 変更後にキャッシュを更新
-cache["sent_reports"].append("new_report_time")
-os.environ["CACHE"] = json.dumps(cache)
+# キャッシュファイルのパス
+CACHE_FILE = "json/cache.json"
 
-# 初期化するキャッシュデータ
-initial_cache = {"sent_reports": []}
-# cache.json ファイルに書き込む
-with open("json/cache.json", "w") as f:
-    json.dump(initial_cache, f, indent=4)
-print("キャッシュが初期化されました: cache.json に保存されました。")
+# キャッシュデータの読み込みまたは初期化
+if not os.path.exists(CACHE_FILE):
+    cache = {"sent_reports": []}
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=4)
+else:
+    with open(CACHE_FILE, "r") as f:
+        cache = json.load(f)
 
 with open('json/config.json','r') as f:
 	config = json.load(f)
@@ -27,6 +26,7 @@ color = nextcord.Colour(int(config['color'],16))
 class earthquake(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
+    self.cache = cache
     self.id = None
 		
   @commands.Cog.listener()
@@ -40,51 +40,51 @@ class earthquake(commands.Cog):
   async def eew_check(self):
     now = util.eew_now()
     if now == 0:
-        return
+      return
     res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
     if res.status_code == 200:
-        data = res.json()
-        
-        # キャッシュされた報告を確認
-        sent_reports = self.cache.get("sent_reports", [])
-        if data['report_time'] not in sent_reports:
-            eew_channel = self.bot.get_channel(int(config['eew_channel']))
-            image = False
+      data = res.json()
 
-            if data['is_training']:
-                return
+      # キャッシュされた報告を確認
+      sent_reports = self.cache.get("sent_reports", [])
+      if data["report_time"] not in sent_reports:
+        eew_channel = self.bot.get_channel(int(config["eew_channel"]))
+        if data["is_training"]:
+          return
+        if data["is_cancel"]:
+          embed = nextcord.Embed(
+            title="緊急地震速報がキャンセルされました",
+            description="先ほどの緊急地震速報はキャンセルされました",
+            color=0x00ffee,
+          )
+          await eew_channel.send(embed=embed)
+          return
 
-            if data['is_cancel']:
-                embed = nextcord.Embed(
-                    title="緊急地震速報がキャンセルされました",
-                    description="先ほどの緊急地震速報はキャンセルされました",
-                    color=0x00ffee
-                )
-                await eew_channel.send(embed=embed)
-                return
+        # 警報と予報の処理
+        title = (
+          f"緊急地震速報 第{data['report_num']}報(予報)"
+          if data["alertflg"] == "予報"
+          else f"緊急地震速報 第{data['report_num']}報(警報)"
+        )
+        color2 = 0x00ffee if data["alertflg"] == "予報" else 0xff0000
 
-            # 警報と予報の処理
-            if data['alertflg'] == "予報":
-                title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                color2 = 0x00ffee
-            elif data['alertflg'] == "警報":
-                title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                color2 = 0xff0000
+        time = util.eew_time()
+        embed = nextcord.Embed(
+          title=title,
+          description=f"{time}頃、**{data['region_name']}**で地震が発生しました。\n"
+                      f"最大予想震度: **{data['calcintensity']}**\n"
+                      f"深さ: **{data['depth']}**\n"
+                      f"マグニチュード: **{data['magunitude']}**",
+          color=color2,
+        )
+        await eew_channel.send(embed=embed)
 
-            time = util.eew_time()
-            embed = nextcord.Embed(
-                title=title,
-                description=f"{time}頃、**{data['region_name']}**で地震が発生しました。\n"
-                            f"最大予想震度: **{data['calcintensity']}**\n"
-                            f"深さ: **{data['depth']}**\n"
-                            f"マグニチュード: **{data['magunitude']}**",
-                color=color2
-            )
-            await eew_channel.send(embed=embed)
-
-            # 送信済みリストに追加
-            sent_reports.append(data['report_time'])
-            self.cache['sent_reports'] = sent_reports
+        # 送信済みリストに追加
+        sent_reports.append(data["report_time"])
+        self.cache["sent_reports"] = sent_reports
+        # キャッシュの保存
+        with open(CACHE_FILE, "w") as f:
+          json.dump(self.cache, f, indent=4)
 
 
   #地震情報
