@@ -140,7 +140,7 @@ class earthquake(commands.Cog):
         if now == 0:
             return   
     try:
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json")
         if res.status_code != 200:
             logging.error(f"Failed to fetch data from API: Status {res.status_code}")
             return
