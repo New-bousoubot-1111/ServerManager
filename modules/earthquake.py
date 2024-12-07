@@ -46,6 +46,17 @@ def load_data_from_db():
     finally:
         conn.close()
 
+def test_db_connection():
+    try:
+        conn = connect_db()
+        print("Connection successful")
+        conn.close()
+    except Exception as e:
+        print("Error connecting to the database:", e)
+
+# コードの実行時に確認してみてください
+test_db_connection()
+
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
