@@ -135,57 +135,59 @@ class earthquake(commands.Cog):
                 save_data_to_db(data)
 
     @tasks.loop(seconds=2)
-    async def ee_check(self):
+    async def eew_check(self):
         now = util.eew_now()
         if now == 0:
-            return   
-    try:
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json")
-        if res.status_code != 200:
-            logging.error(f"Failed to fetch data from API: Status {res.status_code}")
             return
+        
+        try:
+            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+            if res.status_code != 200:
+                logging.error(f"Failed to fetch data from API: Status {res.status_code}")
+                return
 
-        data = res.json()
-        logging.debug(f"API Response: {data}")
+            data = res.json()
+            logging.debug(f"API Response: {data}")
 
-        # データが正常か確認
-        if data.get('result', {}).get('message') != "":
-            logging.warning("No new earthquake data found.")
-            return
+            # データが正常か確認
+            if data.get('result', {}).get('message') != "":
+                logging.warning("No new earthquake data found.")
+                return
 
-        cache = load_data_from_db()
-        logging.debug(f"Cache Data: {cache}")
+            cache = load_data_from_db()
+            logging.debug(f"Cache Data: {cache}")
 
-        # 新しいデータか判定
-        if cache.get('report_time') == data.get('report_time'):
-            logging.info("No new earthquake data to send.")
-            return
+            # 新しいデータか判定
+            if cache.get('report_time') == data.get('report_time'):
+                logging.info("No new earthquake data to send.")
+                return
 
-        # Discordチャンネル取得
-        eew_channel = self.bot.get_channel(int(config['eew_channel']))
-        if not eew_channel:
-            logging.error("eew_channel is None. Check the channel ID.")
-            return
+            # Discordチャンネル取得
+            eew_channel = self.bot.get_channel(int(config['eew_channel']))
+            if not eew_channel:
+                logging.error("eew_channel is None. Check the channel ID.")
+                return
 
-        # 緊急地震速報メッセージの作成
-        if data.get('is_training'):
-            logging.info("Training data detected. Skipping.")
-            return
+            # 緊急地震速報メッセージの作成
+            if data.get('is_training'):
+                logging.info("Training data detected. Skipping.")
+                return
 
-        if data.get('is_cancel'):
-            embed = nextcord.Embed(
-                title="緊急地震速報がキャンセルされました",
-                description="先ほどの緊急地震速報はキャンセルされました",
-                color=color
-            )
-            await eew_channel.send(embed=embed)
-            return
+            if data.get('is_cancel'):
+                embed = nextcord.Embed(
+                    title="緊急地震速報がキャンセルされました",
+                    description="先ほどの緊急地震速報はキャンセルされました",
+                    color=color
+                )
+                await eew_channel.send(embed=embed)
+                return
 
-        # そのほかの処理続行...
-        save_data_to_db(data)
+            # そのほかの処理続行...
+            save_data_to_db(data)
 
-    except Exception as e:
-        logging.error(f"Error in eew_check: {e}")
+        except Exception as e:
+            logging.error(f"Error in eew_check: {e}")
+
 
     # 地震情報
     @tasks.loop(seconds=2)
