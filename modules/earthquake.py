@@ -6,10 +6,8 @@ from colorama import Fore
 import psycopg2
 import os
 import util
-from dotenv import load_dotenv
 
 # PostgreSQL接続情報（Railwayの環境変数を使用）
-load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")  # Railwayで設定した環境変数
 
 # データベース接続
