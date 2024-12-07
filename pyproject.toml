@@ -7,7 +7,6 @@ authors = ["nox31monss001 <<>>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 colorama = "^0.4.4"
-replit = "^3.2.4"
 Flask = "^2.0.3"
 aiohttp = "^3.8.1"
 moon-tools = "^1.0.0"
