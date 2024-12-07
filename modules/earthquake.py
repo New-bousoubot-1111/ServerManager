@@ -1,86 +1,51 @@
-import sqlite3
 import nextcord
 from nextcord.ext import commands, tasks
+import json
 import requests
 from colorama import Fore
-import util
-import json
+import psycopg2
 import os
+import util
 
-# 既存のキャッシュデータを読み込みまたは初期化
-CACHE_FILE = 'json/cache.json'
+# PostgreSQL接続情報（Railwayの環境変数を使用）
+DATABASE_URL = os.getenv('DATABASE_URL')  # Railwayで設定した環境変数
 
-# 保存するデータ
-cache_data = {
-    "result": {
-        "status": "success",
-        "message": "",
-        "is_auth": True
-    },
-    "report_time": "2022/05/05 14:55:50",
-    "region_code": "",
-    "request_time": "20220505145550",
-    "region_name": "福島県沖",
-    "longitude": "141.7",
-    "is_cancel": False,
-    "depth": "40km",
-    "calcintensity": "2",
-    "is_final": True,
-    "is_training": False,
-    "latitude": "37.7",
-    "origin_time": "20220505145501",
-    "security": {
-        "realm": "/kyoshin_monitor/static/jsondata/eew_est/",
-        "hash": "b61e4d95a8c42e004665825c098a6de4"
-    },
-    "magunitude": "3.5",
-    "report_num": "4",
-    "request_hypo_type": "eew",
-    "report_id": "20220505145510",
-    "alertflg": "予報"
-}
+# データベース接続
+def connect_db():
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    return conn
 
-# データをキャッシュファイルに保存
-with open(CACHE_FILE, 'w') as f:
-    json.dump(cache_data, f, indent=4)
+# データを保存する関数
+def save_data_to_db(data):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cursor:
+            # 必要なテーブルがまだ作成されていない場合、作成
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS earthquake_cache (
+                    id SERIAL PRIMARY KEY,
+                    data JSONB
+                );
+            """)
+            # データをJSONとして挿入
+            cursor.execute("INSERT INTO earthquake_cache (data) VALUES (%s)", (json.dumps(data),))
+            conn.commit()
+    finally:
+        conn.close()
 
-print("キャッシュが保存されました。")
+# データを読み込む関数
+def load_data_from_db():
+    conn = connect_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT data FROM earthquake_cache ORDER BY id DESC LIMIT 1;")
+            result = cursor.fetchone()
+            if result:
+                return json.loads(result[0])
+            return {}  # データがない場合は空の辞書を返す
+    finally:
+        conn.close()
 
-# SQLiteデータベースファイルのパス
-DB_FILE = "db/cache.db"
-
-# SQLiteデータベースの初期化
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    # `sent_reports`テーブルを作成
-    c.execute('''CREATE TABLE IF NOT EXISTS sent_reports (
-                    report_time TEXT PRIMARY KEY
-                  )''')
-    conn.commit()
-    conn.close()
-
-# 送信済み報告を取得
-def get_sent_reports():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT report_time FROM sent_reports')
-    reports = [row[0] for row in c.fetchall()]
-    conn.close()
-    return reports
-
-# 新しい報告をDBに追加
-def add_sent_report(report_time):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('INSERT INTO sent_reports (report_time) VALUES (?)', (report_time,))
-    conn.commit()
-    conn.close()
-
-# DBの初期化
-init_db()
-
-# 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
@@ -89,7 +54,8 @@ color = nextcord.Colour(int(config['color'], 16))
 class earthquake(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        
+        self.id = None
+
     @commands.Cog.listener()
     async def on_ready(self):
         print(Fore.BLUE + "|earthquake    |" + Fore.RESET)
@@ -105,43 +71,55 @@ class earthquake(commands.Cog):
         res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
         if res.status_code == 200:
             data = res.json()
+            cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
+            if data['result']['message'] == "":
+                if cache.get('report_time') != data['report_time']:
+                    eew_channel = self.bot.get_channel(int(config['eew_channel']))
+                    image = False
+                    if data['is_training'] == True:
+                        return
+                    if data['is_cancel'] == True:
+                        embed = nextcord.Embed(
+                            title="緊急地震速報がキャンセルされました",
+                            description="先ほどの緊急地震速報はキャンセルされました",
+                            color=color
+                        )
+                        await eew_channel.send(embed=embed)
+                        return
+                    if data['alertflg'] == "予報":
+                        start_text = ""
+                        if data['is_final'] == False:
+                            title = f"緊急地震速報 第{data['report_num']}報(予報)"
+                            color2 = 0x00ffee  # ブルー
+                        else:
+                            title = f"緊急地震速報 最終報(予報)"
+                            color2 = 0x00ffee  # ブルー
+                            image = True
+                    if data['alertflg'] == "警報":
+                        start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
+                        if data['is_final'] == False:
+                            title = f"緊急地震速報 第{data['report_num']}報(警報)"
+                            color2 = 0xff0000  # レッド
+                        else:
+                            title = f"緊急地震速報 最終報(警報)"
+                            color2 = 0xff0000  # レッド
+                            image = True
 
-            # DBから送信済み報告を取得
-            sent_reports = get_sent_reports()
-            if data["report_time"] not in sent_reports:
-                eew_channel = self.bot.get_channel(int(config["eew_channel"]))
-                if data["is_training"]:
-                    return
-                if data["is_cancel"]:
+                    time = util.eew_time()
+                    time2 = util.eew_origin_time(data['origin_time'])
                     embed = nextcord.Embed(
-                        title="緊急地震速報がキャンセルされました",
-                        description="先ほどの緊急地震速報はキャンセルされました",
-                        color=0x00ffee,
+                        title=title,
+                        description=f"{start_text}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。",
+                        color=color2
                     )
                     await eew_channel.send(embed=embed)
-                    return
+                    if data['report_num'] == "1":
+                        image = True
+                    if image == True:
+                        await util.eew_image(eew_channel)
 
-                # 警報と予報の処理
-                title = (
-                    f"緊急地震速報 第{data['report_num']}報(予報)"
-                    if data["alertflg"] == "予報"
-                    else f"緊急地震速報 第{data['report_num']}報(警報)"
-                )
-                color2 = 0x00ffee if data["alertflg"] == "予報" else 0xff0000
-
-                time = util.eew_time()
-                embed = nextcord.Embed(
-                    title=title,
-                    description=f"{time}頃、**{data['region_name']}**で地震が発生しました。\n"
-                                f"最大予想震度: **{data['calcintensity']}**\n"
-                                f"深さ: **{data['depth']}**\n"
-                                f"マグニチュード: **{data['magunitude']}**",
-                    color=color2,
-                )
-                await eew_channel.send(embed=embed)
-
-                # 送信済みリストに追加し、DBに保存
-                add_sent_report(data["report_time"])
+                # PostgreSQLにキャッシュを保存
+                save_data_to_db(data)
 
     # 地震情報
     @tasks.loop(seconds=2)
@@ -160,7 +138,7 @@ class earthquake(commands.Cog):
                 embed = nextcord.Embed(title="地震情報", color=color)
                 embed.add_field(name="発生時刻", value=data['time'], inline=False)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
-                embed.add_field(name="最大震度", value=round(data['maxScale'] / 10), inline=False)
+                embed.add_field(name="最大震度", value=round(data['maxScale']/10), inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
                 embed.add_field(name="", value=isArea, inline=False)
