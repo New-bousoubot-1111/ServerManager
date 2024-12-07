@@ -6,5 +6,4 @@ wavelink
 flask
 requests
 deepl
-replit
-db
+psycopg2
