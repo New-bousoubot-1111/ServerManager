@@ -7,6 +7,45 @@ import util
 import json
 import os
 
+# 既存のキャッシュデータを読み込みまたは初期化
+CACHE_FILE = 'json/cache.json'
+
+# 保存するデータ
+cache_data = {
+    "result": {
+        "status": "success",
+        "message": "",
+        "is_auth": True
+    },
+    "report_time": "2022/05/05 14:55:50",
+    "region_code": "",
+    "request_time": "20220505145550",
+    "region_name": "福島県沖",
+    "longitude": "141.7",
+    "is_cancel": False,
+    "depth": "40km",
+    "calcintensity": "2",
+    "is_final": True,
+    "is_training": False,
+    "latitude": "37.7",
+    "origin_time": "20220505145501",
+    "security": {
+        "realm": "/kyoshin_monitor/static/jsondata/eew_est/",
+        "hash": "b61e4d95a8c42e004665825c098a6de4"
+    },
+    "magunitude": "3.5",
+    "report_num": "4",
+    "request_hypo_type": "eew",
+    "report_id": "20220505145510",
+    "alertflg": "予報"
+}
+
+# データをキャッシュファイルに保存
+with open(CACHE_FILE, 'w') as f:
+    json.dump(cache_data, f, indent=4)
+
+print("キャッシュが保存されました。")
+
 # SQLiteデータベースファイルのパス
 DB_FILE = "db/cache.db"
 
