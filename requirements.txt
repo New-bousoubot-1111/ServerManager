@@ -8,3 +8,4 @@ requests
 deepl
 psycopg2
 matplotlib
+mpl_toolkits.basemap
