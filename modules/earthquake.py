@@ -206,8 +206,11 @@ class earthquake(commands.Cog):
         embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
 
         # テスト送信先チャンネル
+    try:
         tsunami_channel = int(config['eew_channel'])
         await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
+    except Exception as e:
+        print(f"エラー発生: {e}")
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
