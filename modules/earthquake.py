@@ -169,18 +169,25 @@ class earthquake(commands.Cog):
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
                     color = 0x28a745  # 緑色
+                    image_path = "images/shindo1.png"
                 elif max_scale == 2:
                     color = 0x28a745  # 緑色
+                    image_path = "images/shindo2.png"
                 elif max_scale == 3:
                     color = 0xffc107  # 黄色
+                    image_path = "images/shindo3.png"
                 elif max_scale == 4:
                     color = 0xffc107  # 黄色
+                    image_path = "images/shindo4.png"
                 elif max_scale == 5:
                     color = 0xff7f00  # オレンジ色
+                    image_path = "images/shindo5.png"
                 elif max_scale == 6:
                     color = 0xdc3545  # 赤色
+                    image_path = "images/shindo6.png"
                 elif max_scale == 7:
                     color = 0x6f42c1  # 紫色
+                    image_path = "images/shindo7.png"
                 else:
                     color = 0x6c757d  # デフォルト色
             
@@ -192,7 +199,8 @@ class earthquake(commands.Cog):
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
                 embed.add_field(name="", value=isArea, inline=False)
                 embed.set_footer(text=data['time'])
-                embed.set_thumbnail(url=image_url)
+                file = nextcord.File(image_path, filename="shindo_image.png")
+                embed.set_thumbnail("attachment://shindo_image.png")
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
                 with open('json/id.json', 'r') as f:
