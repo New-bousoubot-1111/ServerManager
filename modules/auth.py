@@ -88,6 +88,9 @@ class AuthCodeModal(nextcord.ui.Modal):
         self.add_item(self.code_input)
 
     async def on_submit(self, interaction: nextcord.Interaction):
+        # デバッグメッセージを追加
+        print(f"ユーザーID: {self.user_id}, 入力コード: {self.code_input.value}")
+
         # 保存された認証コードを取得
         saved_code = auth_codes.get(self.user_id)
 
