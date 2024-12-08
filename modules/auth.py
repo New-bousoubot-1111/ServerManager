@@ -17,6 +17,7 @@ class auth(commands.Cog):
     # 認証コマンド
     @nextcord.slash_command(description="認証")
     async def auth(self, ctx):
+        print("authコマンドが呼び出されました")  # デバッグログ
         embed = nextcord.Embed(
             title="必ずルールを全て読んでから認証をして下さい",
             description="",
@@ -32,6 +33,7 @@ class AuthRuleView(nextcord.ui.View):
 
     @nextcord.ui.button(label="ルールを表示", style=nextcord.ButtonStyle.green)
     async def rule_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        print(f"ルール表示ボタンがクリックされました by {interaction.user}")  # デバッグログ
         embed = nextcord.Embed(
             title="ルール",
             description="1. 他者が嫌がるようなことはしないでください。\n"
@@ -45,9 +47,12 @@ class AuthRuleView(nextcord.ui.View):
 
     @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
     async def auth_code(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        print(f"コード取得ボタンがクリックされました by {interaction.user}")  # デバッグログ
+
         # 認証コードを生成して保持
         answer = random.randint(100000, 999999)
         auth_codes[interaction.user.id] = str(answer)
+        print(f"生成された認証コード: {answer}")  # デバッグログ
 
         embed = nextcord.Embed(
             title="認証コード",
@@ -68,6 +73,7 @@ class AuthCodeView(nextcord.ui.View):
 
     @nextcord.ui.button(label="認証", style=nextcord.ButtonStyle.green)
     async def auth_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        print(f"認証ボタンがクリックされました by {interaction.user}")  # デバッグログ
         # 認証用Modalを表示
         await interaction.response.send_modal(AuthCodeModal(self.user_id))
 
@@ -88,11 +94,12 @@ class AuthCodeModal(nextcord.ui.Modal):
         self.add_item(self.code_input)
 
     async def on_submit(self, interaction: nextcord.Interaction):
-        # デバッグメッセージを追加
-        print(f"ユーザーID: {self.user_id}, 入力コード: {self.code_input.value}")
+        print(f"認証コードフォームが送信されました by {interaction.user}")  # デバッグログ
+        print(f"入力されたコード: {self.code_input.value}")  # デバッグログ
 
         # 保存された認証コードを取得
         saved_code = auth_codes.get(self.user_id)
+        print(f"保存されたコード: {saved_code}")  # デバッグログ
 
         # 入力されたコードを比較
         input_code = self.code_input.value
@@ -101,6 +108,7 @@ class AuthCodeModal(nextcord.ui.Modal):
             role = nextcord.utils.get(interaction.guild.roles, name="user")
             if role:
                 await interaction.user.add_roles(role)
+                print(f"ロール {role.name} を付与しました to {interaction.user}")  # デバッグログ
                 embed = nextcord.Embed(
                     title="認証成功",
                     description="userロールを付与しました。",
@@ -110,6 +118,7 @@ class AuthCodeModal(nextcord.ui.Modal):
                 # 認証コードを削除
                 auth_codes.pop(self.user_id, None)
             else:
+                print("userロールが見つかりませんでした")  # デバッグログ
                 embed = nextcord.Embed(
                     title="エラー",
                     description="userロールが見つかりませんでした。",
@@ -118,6 +127,7 @@ class AuthCodeModal(nextcord.ui.Modal):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             # 認証失敗時
+            print("認証コードが一致しません")  # デバッグログ
             embed = nextcord.Embed(
                 title="認証失敗",
                 description="認証コードが正しくありません。",
