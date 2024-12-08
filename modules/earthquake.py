@@ -6,7 +6,7 @@ from colorama import Fore
 import psycopg2
 import os
 import util
-from datetime import datetime
+from dateutil import parser
 
 # PostgreSQL接続情報（Railwayの環境変数を使用）
 DATABASE_URL = os.getenv("DATABASE_URL")  # Railwayで設定した環境変数
@@ -192,7 +192,7 @@ class earthquake(commands.Cog):
                 else:
                     color = 0x6c757d  # デフォルト色
 
-                earthquake_time = datetime.strptime(data['time'], '%Y-%m-%dT%H:%M:%S%z')
+                earthquake_time = parser.parse(data['time'])  # dateutil.parserを使用
                 formatted_time = earthquake_time.strftime('%H時%M分')
                 embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度{round(data['maxScale'] / 10)}の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
