@@ -75,53 +75,54 @@ class earthquake(commands.Cog):
         self.eew_info.start()
 
     # 緊急地震速報
-@tasks.loop(seconds=2)
-async def eew_check(self):
-    now = util.eew_now()
-    if now == 0:
-        logging.info("eew_now returned 0. Skipping.")
-        return
-    try:
-        url = f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json"
-        logging.info(f"Fetching data from: {url}")
-        
-        res = requests.get(url)
-        if res.status_code != 200:
-            logging.error(f"API request failed with status code {res.status_code}")
-            return
-        
-        data = res.json()
-        logging.debug(f"API Response: {data}")
-
-        if data.get('result', {}).get('message') != "":
-            logging.info("No earthquake data available.")
-            return
-        
-        cache = load_data_from_db()
-        logging.debug(f"Cache data: {cache}")
-
-        if cache.get('report_time') == data.get('report_time'):
-            logging.info("No new data to process.")
-            return
-        
-        eew_channel = self.bot.get_channel(int(config['eew_channel']))
-        if not eew_channel:
-            logging.error("Failed to fetch eew_channel. Check channel ID.")
+    @tasks.loop(seconds=2)
+    async def eew_check(self):
+        now = util.eew_now()
+        if now == 0:
+            logging.info("eew_now returned 0. Skipping.")
             return
 
-        # Earthquake data processing
-        logging.info("Sending earthquake alert...")
-        embed = nextcord.Embed(
-            title="緊急地震速報",
-            description="地震が発生しました。",
-            color=color
-        )
-        await eew_channel.send(embed=embed)
+        try:
+            url = f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json"
+            logging.info(f"Fetching data from: {url}")
 
-        save_data_to_db(data)
+            res = requests.get(url)
+            if res.status_code != 200:
+                logging.error(f"API request failed with status code {res.status_code}")
+                return
 
-    except Exception as e:
-        logging.error(f"Error in eew_check: {e}")
+            data = res.json()
+            logging.debug(f"API Response: {data}")
+
+            if data.get('result', {}).get('message') != "":
+                logging.info("No earthquake data available.")
+                return
+
+            cache = load_data_from_db()
+            logging.debug(f"Cache data: {cache}")
+
+            if cache.get('report_time') == data.get('report_time'):
+                logging.info("No new data to process.")
+                return
+
+            eew_channel = self.bot.get_channel(int(config['eew_channel']))
+            if not eew_channel:
+                logging.error("Failed to fetch eew_channel. Check channel ID.")
+                return
+
+            # Earthquake data processing
+            logging.info("Sending earthquake alert...")
+            embed = nextcord.Embed(
+                title="緊急地震速報",
+                description="地震が発生しました。",
+                color=color
+            )
+            await eew_channel.send(embed=embed)
+
+            save_data_to_db(data)
+
+        except Exception as e:
+            logging.error(f"Error in eew_check: {e}")
 
 
     # 地震情報
