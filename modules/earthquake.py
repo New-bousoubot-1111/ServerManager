@@ -161,7 +161,7 @@ class earthquake(commands.Cog):
             id = json.load(f)['eew_id']
         data = requests.get(f'https://api.p2pquake.net/v2/history?codes=551&limit=1').json()[0]["points"]
         if data[0]["isArea"] is False:
-            isArea = "この地震による津波の心配はありません" if not data[0]["isArea"] else "この地震で津波が発生する可能性があります"
+            isArea = "この地震による津波の心配はありません" if not data[0]["isArea"] else "この地震で津波が発生する可能性があります\n今後の情報に注意してください"
         request = requests.get(f'https://api.p2pquake.net/v2/history?codes=551&limit=1')
         response = request.json()[0]
         data = response['earthquake']
@@ -171,13 +171,13 @@ class earthquake(commands.Cog):
                 # 震度に応じた色の設定
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
-                    color = 0x28a745  # 緑色
+                    color = 0x6c757d  # グレー
                     image = "images/shindo1.png"
                 elif max_scale == 2:
-                    color = 0x28a745  # 緑色
+                    color = 0x6c757d  # グレー
                     image = "images/shindo2.png"
                 elif max_scale == 3:
-                    color = 0xffc107  # 黄色
+                    color = 0x28a745  # 緑色
                     image = "images/shindo3.png"
                 elif max_scale == 4:
                     color = 0xffc107  # 黄色
