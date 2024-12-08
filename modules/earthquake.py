@@ -194,7 +194,7 @@ class earthquake(commands.Cog):
 
     #津波情報
     @tasks.loop(count=1)  # 一度だけ実行
-    async def send_test_tsunami_info(self):
+    async def tsunami_info(self):
         # 仮の津波情報
         tsunami_regions = [
             (35.0, 135.0),  # サンプル地点（京都付近）
