@@ -92,6 +92,7 @@ class earthquake(commands.Cog):
         print(Fore.BLUE + "|earthquake    |" + Fore.RESET)
         self.eew_check.start()
         self.eew_info.start()
+        self.tsunami_info.start()
 
     # 緊急地震速報
     @tasks.loop(seconds=2)
@@ -186,8 +187,8 @@ class earthquake(commands.Cog):
                 return
 
   #津波情報
-  @tasks.loop(seconds=60)  # 定期的に津波情報を確認
-  async def send_tsunami_info(self):
+  @tasks.loop(seconds=5)  # 定期的に津波情報を確認
+  async def tsunami_info(self):
     # 津波情報を取得
     response = requests.get("https://api.p2pquake.net/v2/history?codes=552&limit=1")
     if response.status_code != 200:
