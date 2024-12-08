@@ -103,7 +103,7 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032822.json")
         if res.status_code == 200:
             data = res.json()
             cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
