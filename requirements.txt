@@ -8,5 +8,4 @@ requests
 deepl
 psycopg2
 matplotlib
-matplotlib.pyplot
 Basemap
