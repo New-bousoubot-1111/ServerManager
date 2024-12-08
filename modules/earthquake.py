@@ -190,8 +190,9 @@ class earthquake(commands.Cog):
                     image = "images/shindo7.png"
                 else:
                     color = 0x6c757d  # デフォルト色
-            
-                embed = nextcord.Embed(title="地震情報", color=color)
+
+                time = util.eew_origin_time(data['origin_time'])
+                embed = nextcord.Embed(title="地震情報", description=f"{data['time']}頃、最大震度{round(data['maxScale'] / 10)}の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="発生時刻", value=data['time'], inline=False)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="最大震度", value=round(data['maxScale'] / 10), inline=False)
