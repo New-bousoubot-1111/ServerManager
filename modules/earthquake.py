@@ -94,9 +94,6 @@ class earthquake(commands.Cog):
         self.eew_info.start()
         self.tsunami_info.start()
         self.tsunami_channel_id = int(config['eew_channel'])
-        plt.title("津波情報")
-        plt.savefig(output_file)
-        plt.close()
 
         return output_file
 
