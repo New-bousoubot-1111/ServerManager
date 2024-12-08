@@ -186,61 +186,61 @@ class earthquake(commands.Cog):
             else:
                 return
 
-  #津波情報
-  @tasks.loop(seconds=5)  # 定期的に津波情報を確認
-  async def tsunami_info(self):
-    # 津波情報を取得
-    response = requests.get("https://api.p2pquake.net/v2/history?codes=552&limit=1")
-    if response.status_code != 200:
-      print("津波情報の取得に失敗しました。")
-      return
+    #津波情報
+    @tasks.loop(seconds=60)  # 定期的に津波情報を確認
+    async def send_tsunami_info(self):
+        # 津波情報を取得
+        response = requests.get("https://api.p2pquake.net/v2/history?codes=552&limit=1")
+        if response.status_code != 200:
+            print("津波情報の取得に失敗しました。")
+            return
 
-    tsunami_data = response.json()[0]
-    tsunami_regions = []  # 津波警報が発令されている地域の緯度・経度
-    for area in tsunami_data["areas"]:
-      # 仮の緯度・経度を設定（本番ではエリアごとに緯度・経度を定義）
-      tsunami_regions.append((35.0, 135.0))  # サンプル値
+        tsunami_data = response.json()[0]
+        tsunami_regions = []  # 津波警報が発令されている地域の緯度・経度
+        for area in tsunami_data["areas"]:
+            # 仮の緯度・経度を設定（本番ではエリアごとに緯度・経度を定義）
+            tsunami_regions.append((35.0, 135.0))  # サンプル値
 
-    # 地図画像を生成
-    map_file_path = self.generate_tsunami_map(tsunami_regions)
+        # 地図画像を生成
+        map_file_path = self.generate_tsunami_map(tsunami_regions)
 
-    # Discord Embed作成
-    embed = nextcord.Embed(title="津波情報", color=0xFF0000)
-    embed.add_field(name="発表時刻", value=tsunami_data["time"], inline=False)
-    embed.add_field(name="発令地域", value=", ".join([area['name'] for area in tsunami_data["areas"]]), inline=False)
-    embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
+        # Discord Embed作成
+        embed = nextcord.Embed(title="津波情報", color=0xFF0000)
+        embed.add_field(name="発表時刻", value=tsunami_data["time"], inline=False)
+        embed.add_field(name="発令地域", value=", ".join([area['name'] for area in tsunami_data["areas"]]), inline=False)
+        embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
 
-    # チャンネルを取得し、送信
-    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
-    if tsunami_channel:
-      await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
+        # チャンネルを取得し、送信
+        tsunami_channel = self.get_channel(self.tsunami_channel_id)
+        if tsunami_channel:
+            await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
 
-  def generate_tsunami_map(self, tsunami_regions, output_file="tsunami_map.png"):
-    """
-    津波情報を地図にプロットし、画像を生成する関数。
-    
-    Args:
-      tsunami_regions (list of tuples): 津波警報が発令されている地域の緯度と経度のリスト [(lat, lon), ...]
-      output_file (str): 生成される地図画像のファイルパス
-    """
-    # 地図の作成
-    fig = plt.figure(figsize=(12, 8))
-    m = Basemap(projection='merc', llcrnrlat=20, urcrnrlat=50, llcrnrlon=120, urcrnrlon=150, resolution='i')
-    m.drawcoastlines()
-    m.drawcountries()
-    m.drawstates()
+    def generate_tsunami_map(self, tsunami_regions, output_file="tsunami_map.png"):
+        """
+        津波情報を地図にプロットし、画像を生成する関数。
+        
+        Args:
+            tsunami_regions (list of tuples): 津波警報が発令されている地域の緯度と経度のリスト [(lat, lon), ...]
+            output_file (str): 生成される地図画像のファイルパス
+        """
+        # 地図の作成
+        fig = plt.figure(figsize=(12, 8))
+        m = Basemap(projection='merc', llcrnrlat=20, urcrnrlat=50, llcrnrlon=120, urcrnrlon=150, resolution='i')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.drawstates()
 
-    # 津波警報地域をプロット
-    for lat, lon in tsunami_regions:
-      x, y = m(lon, lat)
-      m.plot(x, y, 'ro', markersize=10)  # 赤い点でプロット
+        # 津波警報地域をプロット
+        for lat, lon in tsunami_regions:
+            x, y = m(lon, lat)
+            m.plot(x, y, 'ro', markersize=10)  # 赤い点でプロット
 
-    # タイトルを設定して画像を保存
-    plt.title("津波情報")
-    plt.savefig(output_file)
-    plt.close()
+        # タイトルを設定して画像を保存
+        plt.title("津波情報")
+        plt.savefig(output_file)
+        plt.close()
 
-    return output_file
+        return output_file
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
