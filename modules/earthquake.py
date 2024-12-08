@@ -167,9 +167,13 @@ class earthquake(commands.Cog):
             if id != response['id']:
                 # 震度に応じた色の設定
                 max_scale = round(data['maxScale'] / 10)
-                if max_scale == 1 or max_scale == 2:
+                if max_scale == 1:
                     color = 0x28a745  # 緑色
-                elif max_scale == 3 or max_scale == 4:
+                elif max_scale == 2:
+                    color = 0x28a745  # 緑色
+                elif max_scale == 3:
+                    color = 0xffc107  # 黄色
+                elif max_scale == 4:
                     color = 0xffc107  # 黄色
                 elif max_scale == 5:
                     color = 0xff7f00  # オレンジ色
@@ -178,7 +182,7 @@ class earthquake(commands.Cog):
                 elif max_scale == 7:
                     color = 0x6f42c1  # 紫色
                 else:
-                    color = 0x6c757d  # デフォルト色（グレー）
+                    color = 0x6c757d  # デフォルト色
             
                 embed = nextcord.Embed(title="地震情報", color=color)
                 embed.add_field(name="発生時刻", value=data['time'], inline=False)
@@ -188,6 +192,7 @@ class earthquake(commands.Cog):
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
                 embed.add_field(name="", value=isArea, inline=False)
                 embed.set_footer(text=data['time'])
+                embed.set_thumbnail(url=image_url)
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
                 with open('json/id.json', 'r') as f:
