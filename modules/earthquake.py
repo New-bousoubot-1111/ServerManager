@@ -192,13 +192,14 @@ class earthquake(commands.Cog):
                 else:
                     color = 0x6c757d  # デフォルト色
 
-                earthquake_time = parser.parse(data['time'])  # dateutil.parserを使用
+                earthquake_time = parser.parse(data['time'])
                 formatted_time = earthquake_time.strftime('%H時%M分')
+                current_time = datetime.now().strftime('%H:%M:%S')
                 embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度{round(data['maxScale'] / 10)}の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
-                embed.set_footer(text=formatted_time)
+                embed.set_footer(text=current_time)
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
                 with open('json/id.json', 'r') as f:
