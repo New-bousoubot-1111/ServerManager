@@ -1,8 +1,8 @@
 import nextcord
 from nextcord.ext import commands
-import random
 import json
 from colorama import Fore
+import random
 
 with open('json/config.json','r') as f:
 	config = json.load(f)
