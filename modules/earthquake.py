@@ -198,7 +198,7 @@ class earthquake(commands.Cog):
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
-                embed.set_footer(text=data['time'])
+                embed.set_footer(text=formatted_time)
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
                 with open('json/id.json', 'r') as f:
