@@ -24,6 +24,7 @@ class auth(commands.Cog):
         )
         await ctx.send(embed=embed, view=AuthRuleView(), ephemeral=True)
 
+
 # ルール表示用のView
 class AuthRuleView(nextcord.ui.View):
     def __init__(self):
@@ -50,14 +51,25 @@ class AuthRuleView(nextcord.ui.View):
 
         embed = nextcord.Embed(
             title="認証コード",
-            description="2分以内に以下のコードを認証してください。",
+            description="以下の認証コードを2分以内に認証してください。",
             color=nextcord.Colour.gold()
         )
         embed.add_field(name="認証コード", value=str(answer), inline=False)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # 認証用ボタンを送信
-        await interaction.followup.send("コードを入力してください。", view=AuthCodeView(), ephemeral=True)
+        # 認証用のボタン付きビューを送信
+        await interaction.response.send_message(embed=embed, view=AuthCodeView(interaction.user.id), ephemeral=True)
+
+
+# 認証用のView（認証ボタン付き）
+class AuthCodeView(nextcord.ui.View):
+    def __init__(self, user_id):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+
+    @nextcord.ui.button(label="認証", style=nextcord.ButtonStyle.green)
+    async def auth_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        # 認証用Modalを表示
+        await interaction.response.send_modal(AuthCodeModal(self.user_id))
 
 
 # 認証コード入力用のModal
@@ -109,17 +121,6 @@ class AuthCodeModal(nextcord.ui.Modal):
                 color=0xff0000
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-# 認証用のView
-class AuthCodeView(nextcord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @nextcord.ui.button(label="認証", style=nextcord.ButtonStyle.green)
-    async def auth_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        # 認証用Modalを表示
-        await interaction.response.send_modal(AuthCodeModal(interaction.user.id))
 
 
 def setup(bot):
