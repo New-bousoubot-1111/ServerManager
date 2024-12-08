@@ -199,8 +199,7 @@ class earthquake(commands.Cog):
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
                 embed.add_field(name="", value=isArea, inline=False)
                 embed.set_footer(text=data['time'])
-                file = nextcord.File(image_path, filename="shindo_image.png")
-                embed.set_thumbnail("attachment://shindo_image.png")
+                embed.set_thumbnail(image_path)
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
                 with open('json/id.json', 'r') as f:
