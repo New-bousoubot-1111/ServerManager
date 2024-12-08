@@ -22,7 +22,7 @@ class tasks(commands.Cog):
         self.news_info.start()
 
     # ニュース速報
-    @tasks.loop(seconds=2)
+    @tasks.loop(seconds=60)
     async def news_info(self):
         RSS_URL = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
         response = requests.get(RSS_URL)
