@@ -93,6 +93,7 @@ class earthquake(commands.Cog):
         self.eew_check.start()
         self.eew_info.start()
         self.tsunami_info.start()
+        self.tsunami_channel_id = int(config['eew_channel'])
 
     # 緊急地震速報
     @tasks.loop(seconds=2)
@@ -178,7 +179,6 @@ class earthquake(commands.Cog):
                 embed.set_footer(text=data['time'])
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
-                await eew_channel.send(embed=embed, file=nextcord.File(map_file_path))
                 with open('json/id.json', 'r') as f:
                     id = json.load(f)
                     id['eew_id'] = response['id']
@@ -188,7 +188,7 @@ class earthquake(commands.Cog):
                 return
 
     #津波情報
-    @tasks.loop(seconds=60)  # 定期的に津波情報を確認
+    @tasks.loop(seconds=2)  # 定期的に津波情報を確認
     async def tsunami_info(self):
         # 津波情報を取得
         response = requests.get("https://api.p2pquake.net/v2/history?codes=552&limit=1")
@@ -207,12 +207,10 @@ class earthquake(commands.Cog):
 
         # Discord Embed作成
         embed = nextcord.Embed(title="津波情報", color=0xFF0000)
-        embed.add_field(name="発表時刻", value=tsunami_data["time"], inline=False)
-        embed.add_field(name="発令地域", value=", ".join([area['name'] for area in tsunami_data["areas"]]), inline=False)
         embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
 
         # チャンネルを取得し、送信
-        tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+        tsunami_channel = self.get_channel(self.tsunami_channel_id)
         if tsunami_channel:
             await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
 
