@@ -12,11 +12,8 @@ color = nextcord.Colour(int(config['color'],16))
 class auth(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
-		
-    @commands.Cog.listener()
-    async def on_ready(self):
-      print(Fore.BLUE + "|auth          |" + Fore.RESET)
 
+	  
     @nextcord.slash_command(description="認証コマンド")
     async def auth(self, ctx):
         # ランダムな認証コードを生成
