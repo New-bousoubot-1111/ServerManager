@@ -1,15 +1,10 @@
 import nextcord
 from nextcord.ext import commands
-import json
 from colorama import Fore
 import random
 
-# 設定ファイルの読み込み
-with open('json/config.json', 'r') as f:
-    config = json.load(f)
-
-color = nextcord.Colour(int(config['color'], 16))
-
+# 認証コードを保持する辞書
+auth_codes = {}
 
 class auth(commands.Cog):
     def __init__(self, bot):
@@ -25,10 +20,9 @@ class auth(commands.Cog):
         embed = nextcord.Embed(
             title="必ずルールを全て読んでから認証をして下さい",
             description="",
-            color=color
+            color=nextcord.Colour.blue()
         )
         await ctx.send(embed=embed, view=AuthRuleView(), ephemeral=True)
-
 
 # ルール表示用のView
 class AuthRuleView(nextcord.ui.View):
@@ -44,16 +38,15 @@ class AuthRuleView(nextcord.ui.View):
                         "3. 他鯖の招待リンクの添付は控えて下さい。\n"
                         "4. この鯖でBOTを使用する場合はコマンドチャンネルでお願いします。\n"
                         "以上のルールを守るようお願いします！",
-            color=color
+            color=nextcord.Colour.blue()
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
     async def auth_code(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        # 認証コードを生成
+        # 認証コードを生成して保持
         answer = random.randint(100000, 999999)
-        with open('json/id.json', 'w') as f:
-            json.dump({"auth": str(answer)}, f, indent=2)
+        auth_codes[interaction.user.id] = str(answer)
 
         embed = nextcord.Embed(
             title="認証コード",
@@ -62,14 +55,16 @@ class AuthRuleView(nextcord.ui.View):
         )
         embed.add_field(name="認証コード", value=str(answer), inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
         # 認証用ボタンを送信
         await interaction.followup.send("コードを入力してください。", view=AuthCodeView(), ephemeral=True)
 
 
 # 認証コード入力用のModal
 class AuthCodeModal(nextcord.ui.Modal):
-    def __init__(self):
+    def __init__(self, user_id):
         super().__init__(title="認証コード入力")
+        self.user_id = user_id
 
         self.code_input = nextcord.ui.TextInput(
             label="認証コード",
@@ -81,9 +76,8 @@ class AuthCodeModal(nextcord.ui.Modal):
         self.add_item(self.code_input)
 
     async def on_submit(self, interaction: nextcord.Interaction):
-        # JSONファイルから認証コードを取得
-        with open('json/id.json', 'r') as f:
-            saved_code = json.load(f).get('auth')
+        # 保存された認証コードを取得
+        saved_code = auth_codes.get(self.user_id)
 
         # 入力されたコードを比較
         input_code = self.code_input.value
@@ -98,6 +92,8 @@ class AuthCodeModal(nextcord.ui.Modal):
                     color=0x00ffee
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
+                # 認証コードを削除
+                auth_codes.pop(self.user_id, None)
             else:
                 embed = nextcord.Embed(
                     title="エラー",
@@ -123,7 +119,7 @@ class AuthCodeView(nextcord.ui.View):
     @nextcord.ui.button(label="認証", style=nextcord.ButtonStyle.green)
     async def auth_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # 認証用Modalを表示
-        await interaction.response.send_modal(AuthCodeModal())
+        await interaction.response.send_modal(AuthCodeModal(interaction.user.id))
 
 
 def setup(bot):
