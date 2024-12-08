@@ -75,6 +75,8 @@ def initialize_database():
 # Bot起動時にデータベースを初期化
 initialize_database()
 
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+
 try:
     with conn.cursor() as cursor:
         # testテーブルを削除
