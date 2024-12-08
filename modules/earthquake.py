@@ -169,7 +169,7 @@ class earthquake(commands.Cog):
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
                     color = 0x28a745  # 緑色
-                    image_path = "images/shindo1.png"
+                    image_path = "images/kmoni.png"
                 elif max_scale == 2:
                     color = 0x28a745  # 緑色
                     image_path = "images/shindo2.png"
