@@ -211,7 +211,7 @@ class earthquake(commands.Cog):
         embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
 
         # チャンネルを取得し、送信
-        tsunami_channel = self.get_channel(self.tsunami_channel_id)
+        tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
         if tsunami_channel:
             await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
 
