@@ -23,12 +23,14 @@ def save_data_to_db(data):
     conn = connect_db()
     try:
         with conn.cursor() as cursor:
+            # 必要なテーブルがまだ作成されていない場合、作成
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS earthquake_cache (
                     id SERIAL PRIMARY KEY,
                     data JSONB
                 );
             """)
+            # データをJSONとして挿入
             cursor.execute("INSERT INTO earthquake_cache (data) VALUES (%s)", (json.dumps(data),))
             conn.commit()
     finally:
@@ -47,18 +49,18 @@ def load_data_from_db():
     finally:
         conn.close()
 
-# キャッシュを削除する関数（デバッグ用）
-def clear_cache():
-    conn = connect_db()
+def test_db_connection():
     try:
-        with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM earthquake_cache;")
-            conn.commit()
-            print("キャッシュをクリアしました。")
-    finally:
+        conn = connect_db()
+        print("Connection successful")
         conn.close()
+    except Exception as e:
+        print("Error connecting to the database:", e)
+        print("DATABASE_URL:", DATABASE_URL)
 
-# データベースを初期化する関数
+# コードの実行時に確認してみてください
+test_db_connection()
+
 def initialize_database():
     conn = connect_db()
     try:
@@ -73,18 +75,7 @@ def initialize_database():
     finally:
         conn.close()
 
-# データベース接続テスト
-def test_db_connection():
-    try:
-        conn = connect_db()
-        print("Connection successful")
-        conn.close()
-    except Exception as e:
-        print("Error connecting to the database:", e)
-        print("DATABASE_URL:", DATABASE_URL)
-
-# テスト実行
-test_db_connection()
+# Bot起動時にデータベースを初期化
 initialize_database()
 
 with open('json/config.json', 'r') as f:
@@ -103,60 +94,68 @@ class earthquake(commands.Cog):
         self.eew_check.start()
         self.eew_info.start()
 
-    # 緊急地震速報タスク
+    # 緊急地震速報
     @tasks.loop(seconds=2)
     async def eew_check(self):
         now = util.eew_now()
         if now == 0:
             return
         res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
+        print(now)
         if res.status_code == 200:
             data = res.json()
             cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
+            if data['result']['message'] == "":
+                if cache.get('report_time') != data['report_time']:
+                    eew_channel = self.bot.get_channel(int(config['eew_channel']))
+                    image = False
+                    if data['is_training'] == True:
+                        return
+                    if data['is_cancel'] == True:
+                        embed = nextcord.Embed(
+                            title="緊急地震速報がキャンセルされました",
+                            description="先ほどの緊急地震速報はキャンセルされました",
+                            color=color
+                        )
+                        await eew_channel.send(embed=embed)
+                        return
+                    if data['alertflg'] == "予報":
+                        start_text = ""
+                        if data['is_final'] == False:
+                            title = f"緊急地震速報 第{data['report_num']}報(予報)"
+                            color2 = 0x00ffee  # ブルー
+                        else:
+                            title = f"緊急地震速報 最終報(予報)"
+                            color2 = 0x00ffee  # ブルー
+                            image = True
+                    if data['alertflg'] == "警報":
+                        start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
+                        if data['is_final'] == False:
+                            title = f"緊急地震速報 第{data['report_num']}報(警報)"
+                            color2 = 0xff0000  # レッド
+                        else:
+                            title = f"緊急地震速報 最終報(警報)"
+                            color2 = 0xff0000  # レッド
+                            image = True
 
-            print("現在のキャッシュ:", cache)
-            print("APIデータ:", data)
-
-            if not cache:
-                print("キャッシュが空です。新しいデータを保存します。")
-                save_data_to_db(data)
-                return
-
-            if cache.get('report_time') != data.get('report_time'):
-                eew_channel = self.bot.get_channel(int(config['eew_channel']))
-                if data['is_training']:
-                    return
-                if data['is_cancel']:
+                    time = util.eew_time()
+                    time2 = util.eew_origin_time(data['origin_time'])
                     embed = nextcord.Embed(
-                        title="緊急地震速報がキャンセルされました",
-                        description="先ほどの緊急地震速報はキャンセルされました",
-                        color=color
+                        title=title,
+                        description=f"{start_text}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。",
+                        color=color2
                     )
                     await eew_channel.send(embed=embed)
-                    return
+                    if data['report_num'] == "1":
+                        image = True
+                    if image == True:
+                        await util.eew_image(eew_channel)
 
-                alert_type = data['alertflg']
-                if alert_type == "予報":
-                    title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                    embed_color = 0x00ffee
-                elif alert_type == "警報":
-                    title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                    embed_color = 0xff0000
-                else:
-                    title = "緊急地震速報"
-                    embed_color = color
-
-                embed = nextcord.Embed(
-                    title=title,
-                    description=f"最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。",
-                    color=embed_color
-                )
-                await eew_channel.send(embed=embed)
-
-                # キャッシュを更新
+                # PostgreSQLにキャッシュを保存
                 save_data_to_db(data)
 
-    # 地震情報タスク
+
+    # 地震情報
     @tasks.loop(seconds=2)
     async def eew_info(self):
         with open('json/id.json', 'r') as f:
