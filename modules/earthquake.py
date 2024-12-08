@@ -178,6 +178,7 @@ class earthquake(commands.Cog):
                 embed.set_footer(text=data['time'])
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
+                await eew_channel.send(embed=embed, file=nextcord.File(map_file_path))
                 with open('json/id.json', 'r') as f:
                     id = json.load(f)
                     id['eew_id'] = response['id']
@@ -188,7 +189,7 @@ class earthquake(commands.Cog):
 
     #津波情報
     @tasks.loop(seconds=60)  # 定期的に津波情報を確認
-    async def send_tsunami_info(self):
+    async def tsunami_info(self):
         # 津波情報を取得
         response = requests.get("https://api.p2pquake.net/v2/history?codes=552&limit=1")
         if response.status_code != 200:
