@@ -73,120 +73,55 @@ class earthquake(commands.Cog):
         print(Fore.BLUE + "|earthquake    |" + Fore.RESET)
         self.eew_check.start()
         self.eew_info.start()
-        self.ee_check.start()
 
     # 緊急地震速報
-    @tasks.loop(seconds=2)
-    async def eew_check(self):
-        now = util.eew_now()
-        if now == 0:
-            return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json")
-        if res.status_code == 200:
-            data = res.json()
-            cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
-            if data['result']['message'] == "":
-                if cache.get('report_time') != data['report_time']:
-                    eew_channel = self.bot.get_channel(int(config['eew_channel']))
-                    image = False
-                    if data['is_training'] == True:
-                        return
-                    if data['is_cancel'] == True:
-                        embed = nextcord.Embed(
-                            title="緊急地震速報がキャンセルされました",
-                            description="先ほどの緊急地震速報はキャンセルされました",
-                            color=color
-                        )
-                        await eew_channel.send(embed=embed)
-                        return
-                    if data['alertflg'] == "予報":
-                        start_text = ""
-                        if data['is_final'] == False:
-                            title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                            color2 = 0x00ffee  # ブルー
-                        else:
-                            title = f"緊急地震速報 最終報(予報)"
-                            color2 = 0x00ffee  # ブルー
-                            image = True
-                    if data['alertflg'] == "警報":
-                        start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
-                        if data['is_final'] == False:
-                            title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                            color2 = 0xff0000  # レッド
-                        else:
-                            title = f"緊急地震速報 最終報(警報)"
-                            color2 = 0xff0000  # レッド
-                            image = True
-
-                    time = util.eew_time()
-                    time2 = util.eew_origin_time(data['origin_time'])
-                    embed = nextcord.Embed(
-                        title=title,
-                        description=f"{start_text}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。",
-                        color=color2
-                    )
-                    await eew_channel.send(embed=embed)
-                    if data['report_num'] == "1":
-                        image = True
-                    if image == True:
-                        await util.eew_image(eew_channel)
-
-                # PostgreSQLにキャッシュを保存
-                save_data_to_db(data)
-
-    @tasks.loop(seconds=2)
-    async def ee_check(self):
-        now = util.eew_now()
-        if now == 0:
+@tasks.loop(seconds=2)
+async def eew_check(self):
+    now = util.eew_now()
+    if now == 0:
+        logging.info("eew_now returned 0. Skipping.")
+        return
+    try:
+        url = f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json"
+        logging.info(f"Fetching data from: {url}")
+        
+        res = requests.get(url)
+        if res.status_code != 200:
+            logging.error(f"API request failed with status code {res.status_code}")
             return
         
-        try:
-            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20240104122709.json")
-            if res.status_code != 200:
-                logging.error(f"Failed to fetch data from API: Status {res.status_code}")
-                return
+        data = res.json()
+        logging.debug(f"API Response: {data}")
 
-            data = res.json()
-            logging.debug(f"API Response: {data}")
+        if data.get('result', {}).get('message') != "":
+            logging.info("No earthquake data available.")
+            return
+        
+        cache = load_data_from_db()
+        logging.debug(f"Cache data: {cache}")
 
-            # データが正常か確認
-            if data.get('result', {}).get('message') != "":
-                logging.warning("No new earthquake data found.")
-                return
+        if cache.get('report_time') == data.get('report_time'):
+            logging.info("No new data to process.")
+            return
+        
+        eew_channel = self.bot.get_channel(int(config['eew_channel']))
+        if not eew_channel:
+            logging.error("Failed to fetch eew_channel. Check channel ID.")
+            return
 
-            cache = load_data_from_db()
-            logging.debug(f"Cache Data: {cache}")
+        # Earthquake data processing
+        logging.info("Sending earthquake alert...")
+        embed = nextcord.Embed(
+            title="緊急地震速報",
+            description="地震が発生しました。",
+            color=color
+        )
+        await eew_channel.send(embed=embed)
 
-            # 新しいデータか判定
-            if cache.get('report_time') == data.get('report_time'):
-                logging.info("No new earthquake data to send.")
-                return
+        save_data_to_db(data)
 
-            # Discordチャンネル取得
-            eew_channel = self.bot.get_channel(int(config['eew_channel']))
-            if not eew_channel:
-                logging.error("eew_channel is None. Check the channel ID.")
-                return
-
-            # 緊急地震速報メッセージの作成
-            if data.get('is_training'):
-                logging.info("Training data detected. Skipping.")
-                return
-
-            if data.get('is_cancel'):
-                embed = nextcord.Embed(
-                    title="緊急地震速報がキャンセルされました",
-                    description="先ほどの緊急地震速報はキャンセルされました",
-                    color=color
-                )
-                await eew_channel.send(embed=embed)
-                return
-
-            # そのほかの処理続行...
-            save_data_to_db(data)
-
-        except Exception as e:
-            logging.error(f"Error in eew_check: {e}")
+    except Exception as e:
+        logging.error(f"Error in eew_check: {e}")
 
 
     # 地震情報
