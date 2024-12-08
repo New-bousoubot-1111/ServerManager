@@ -94,8 +94,18 @@ class AuthCodeModal(nextcord.ui.Modal):
         self.add_item(self.code_input)
 
     async def on_submit(self, interaction: nextcord.Interaction):
-        print(f"認証コードフォームが送信されました by {interaction.user}")  # デバッグログ
+    print(f"認証コードフォームが送信されました by {interaction.user}")  # デバッグログ
+
+    # `self.code_input.value`の値を確認
+    try:
         print(f"入力されたコード: {self.code_input.value}")  # デバッグログ
+    except Exception as e:
+        print(f"エラー: {e}")  # エラーをキャッチ
+        await interaction.response.send_message(
+            "フォームからコードを取得できませんでした。再度お試しください。",
+            ephemeral=True
+        )
+        return
 
         # 保存された認証コードを取得
         saved_code = auth_codes.get(self.user_id)
