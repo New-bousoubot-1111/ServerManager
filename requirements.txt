@@ -8,3 +8,4 @@ requests
 deepl
 psycopg2
 python-dateutil
+pytz
