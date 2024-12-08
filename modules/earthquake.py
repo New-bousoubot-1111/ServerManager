@@ -8,6 +8,7 @@ import os
 import util
 from dateutil import parser
 from datetime import datetime
+import pytz
 
 # PostgreSQL接続情報（Railwayの環境変数を使用）
 DATABASE_URL = os.getenv("DATABASE_URL")  # Railwayで設定した環境変数
@@ -195,7 +196,8 @@ class earthquake(commands.Cog):
 
                 earthquake_time = parser.parse(data['time'])
                 formatted_time = earthquake_time.strftime('%H時%M分')
-                current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
+                japan_timezone = pytz.timezone('Asia/Tokyo')
+                current_time = datetime.now(japan_timezone).strftime('%Y/%m/%d %H:%M')
                 embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度{round(data['maxScale'] / 10)}の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
