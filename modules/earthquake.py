@@ -61,6 +61,23 @@ def test_db_connection():
 # コードの実行時に確認してみてください
 test_db_connection()
 
+def initialize_database():
+    conn = connect_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS earthquake_cache (
+                    id SERIAL PRIMARY KEY,
+                    data JSONB
+                );
+            """)
+            conn.commit()
+    finally:
+        conn.close()
+
+# Bot起動時にデータベースを初期化
+initialize_database()
+
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
