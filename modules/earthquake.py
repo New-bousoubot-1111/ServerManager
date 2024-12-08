@@ -75,19 +75,6 @@ def initialize_database():
 # Bot起動時にデータベースを初期化
 initialize_database()
 
-conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-
-try:
-    with conn.cursor() as cursor:
-        # testテーブルを削除
-        cursor.execute("DROP TABLE IF EXISTS test;")
-        conn.commit()
-        print("テーブル 'test' が削除されました。")
-except Exception as e:
-    print(f"エラーが発生しました: {e}")
-finally:
-    conn.close()
-
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
