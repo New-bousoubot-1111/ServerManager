@@ -75,6 +75,16 @@ def initialize_database():
 # Bot起動時にデータベースを初期化
 initialize_database()
 
+def drop_table():
+    conn = connect_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS test;")
+            conn.commit()
+            print("Table 'test' has been dropped.")
+    finally:
+        conn.close()
+
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
