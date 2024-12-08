@@ -190,13 +190,6 @@ class earthquake(commands.Cog):
     #津波情報
     @tasks.loop(seconds=2)  # 定期的に津波情報を確認
     async def tsunami_info(self):
-        # 津波情報を取得
-        response = requests.get("https://api.p2pquake.net/v2/history?codes=552&limit=1")
-        if response.status_code != 200:
-            print("津波情報の取得に失敗しました。")
-            return
-
-        tsunami_data = response.json()[0]
         tsunami_regions = []  # 津波警報が発令されている地域の緯度・経度
         for area in tsunami_data["areas"]:
             # 仮の緯度・経度を設定（本番ではエリアごとに緯度・経度を定義）
