@@ -18,20 +18,24 @@ def connect_db():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     return conn
 
-# データを保存する関数
+# データを保存する関数（UPSERTを使用）
 def save_data_to_db(data):
     conn = connect_db()
     try:
         with conn.cursor() as cursor:
-            # 必要なテーブルがまだ作成されていない場合、作成
+            # テーブル作成（存在しない場合のみ）
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS earthquake_cache (
-                    id SERIAL PRIMARY KEY,
+                    id INT PRIMARY KEY,
                     data JSONB
                 );
             """)
-            # データをJSONとして挿入
-            cursor.execute("INSERT INTO earthquake_cache (data) VALUES (%s)", (json.dumps(data),))
+            # データを上書き保存（UPSERT）
+            cursor.execute("""
+                INSERT INTO earthquake_cache (id, data)
+                VALUES (1, %s)
+                ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;
+            """, (json.dumps(data),))
             conn.commit()
     finally:
         conn.close()
@@ -41,7 +45,7 @@ def load_data_from_db():
     conn = connect_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT data FROM earthquake_cache ORDER BY id DESC LIMIT 1;")
+            cursor.execute("SELECT data FROM earthquake_cache WHERE id = 1;")
             result = cursor.fetchone()
             if result:
                 return json.loads(result[0])
@@ -49,25 +53,24 @@ def load_data_from_db():
     finally:
         conn.close()
 
-def test_db_connection():
+# キャッシュをクリアする関数
+def clear_cache():
+    conn = connect_db()
     try:
-        conn = connect_db()
-        print("Connection successful")
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM earthquake_cache;")
+            conn.commit()
+    finally:
         conn.close()
-    except Exception as e:
-        print("Error connecting to the database:", e)
-        print("DATABASE_URL:", DATABASE_URL)
 
-# コードの実行時に確認してみてください
-test_db_connection()
-
+# データベース初期化関数
 def initialize_database():
     conn = connect_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS earthquake_cache (
-                    id SERIAL PRIMARY KEY,
+                    id INT PRIMARY KEY,
                     data JSONB
                 );
             """)
@@ -100,18 +103,22 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032650.json")
-        print(now)
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
         if res.status_code == 200:
             data = res.json()
             cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
+
+            # デバッグ用ログ
+            print("Cached report_time:", cache.get('report_time'))
+            print("New report_time:", data.get('report_time'))
+
             if data['result']['message'] == "":
                 if cache.get('report_time') != data['report_time']:
                     eew_channel = self.bot.get_channel(int(config['eew_channel']))
                     image = False
-                    if data['is_training'] == True:
+                    if data['is_training']:
                         return
-                    if data['is_cancel'] == True:
+                    if data['is_cancel']:
                         embed = nextcord.Embed(
                             title="緊急地震速報がキャンセルされました",
                             description="先ほどの緊急地震速報はキャンセルされました",
@@ -121,21 +128,21 @@ class earthquake(commands.Cog):
                         return
                     if data['alertflg'] == "予報":
                         start_text = ""
-                        if data['is_final'] == False:
+                        if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                            color2 = 0x00ffee  # ブルー
+                            color2 = 0x00ffee
                         else:
                             title = f"緊急地震速報 最終報(予報)"
-                            color2 = 0x00ffee  # ブルー
+                            color2 = 0x00ffee
                             image = True
                     if data['alertflg'] == "警報":
                         start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
-                        if data['is_final'] == False:
+                        if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                            color2 = 0xff0000  # レッド
+                            color2 = 0xff0000
                         else:
                             title = f"緊急地震速報 最終報(警報)"
-                            color2 = 0xff0000  # レッド
+                            color2 = 0xff0000
                             image = True
 
                     time = util.eew_time()
@@ -148,12 +155,11 @@ class earthquake(commands.Cog):
                     await eew_channel.send(embed=embed)
                     if data['report_num'] == "1":
                         image = True
-                    if image == True:
+                    if image:
                         await util.eew_image(eew_channel)
 
                 # PostgreSQLにキャッシュを保存
                 save_data_to_db(data)
-
 
     # 地震情報
     @tasks.loop(seconds=2)
