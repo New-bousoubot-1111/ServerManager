@@ -93,9 +93,6 @@ class earthquake(commands.Cog):
         self.eew_check.start()
         self.eew_info.start()
         self.tsunami_info.start()
-        self.tsunami_channel_id = int(config['eew_channel'])
-
-        return output_file
 
     # 緊急地震速報
     @tasks.loop(seconds=2)
@@ -209,9 +206,8 @@ class earthquake(commands.Cog):
         embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
 
         # テスト送信先チャンネル
-        tsunami_channel = self.get_channel(self.tsunami_channel_id)
-        if tsunami_channel:
-            await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
+        tsunami_channel = int(config['eew_channel'])
+        await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
