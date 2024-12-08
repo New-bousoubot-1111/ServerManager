@@ -94,6 +94,11 @@ class earthquake(commands.Cog):
         self.eew_info.start()
         self.tsunami_info.start()
         self.tsunami_channel_id = int(config['eew_channel'])
+        plt.title("津波情報")
+        plt.savefig(output_file)
+        plt.close()
+
+        return output_file
 
     # 緊急地震速報
     @tasks.loop(seconds=2)
@@ -188,51 +193,28 @@ class earthquake(commands.Cog):
                 return
 
     #津波情報
-    @tasks.loop(seconds=2)  # 定期的に津波情報を確認
-    async def tsunami_info(self):
-        tsunami_regions = []  # 津波警報が発令されている地域の緯度・経度
-        for area in tsunami_data["areas"]:
-            # 仮の緯度・経度を設定（本番ではエリアごとに緯度・経度を定義）
-            tsunami_regions.append((35.0, 135.0))  # サンプル値
+    @tasks.loop(count=1)  # 一度だけ実行
+    async def send_test_tsunami_info(self):
+        # 仮の津波情報
+        tsunami_regions = [
+            (35.0, 135.0),  # サンプル地点（京都付近）
+            (38.0, 140.0),  # サンプル地点（仙台付近）
+            (33.0, 130.0)   # サンプル地点（福岡付近）
+        ]
 
         # 地図画像を生成
         map_file_path = self.generate_tsunami_map(tsunami_regions)
 
         # Discord Embed作成
-        embed = nextcord.Embed(title="津波情報", color=0xFF0000)
+        embed = nextcord.Embed(title="テスト津波情報", color=0xFF0000)
+        embed.add_field(name="発表時刻", value="テスト用", inline=False)
+        embed.add_field(name="発令地域", value="サンプル地域1, サンプル地域2, サンプル地域3", inline=False)
         embed.set_image(url="attachment://tsunami_map.png")  # 地図画像を設定
 
-        # チャンネルを取得し、送信
+        # テスト送信先チャンネル
         tsunami_channel = self.get_channel(self.tsunami_channel_id)
         if tsunami_channel:
             await tsunami_channel.send(embed=embed, file=nextcord.File(map_file_path))
-
-    def generate_tsunami_map(self, tsunami_regions, output_file="tsunami_map.png"):
-        """
-        津波情報を地図にプロットし、画像を生成する関数。
-        
-        Args:
-            tsunami_regions (list of tuples): 津波警報が発令されている地域の緯度と経度のリスト [(lat, lon), ...]
-            output_file (str): 生成される地図画像のファイルパス
-        """
-        # 地図の作成
-        fig = plt.figure(figsize=(12, 8))
-        m = Basemap(projection='merc', llcrnrlat=20, urcrnrlat=50, llcrnrlon=120, urcrnrlon=150, resolution='i')
-        m.drawcoastlines()
-        m.drawcountries()
-        m.drawstates()
-
-        # 津波警報地域をプロット
-        for lat, lon in tsunami_regions:
-            x, y = m(lon, lat)
-            m.plot(x, y, 'ro', markersize=10)  # 赤い点でプロット
-
-        # タイトルを設定して画像を保存
-        plt.title("津波情報")
-        plt.savefig(output_file)
-        plt.close()
-
-        return output_file
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
