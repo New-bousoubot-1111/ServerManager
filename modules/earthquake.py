@@ -198,7 +198,7 @@ class earthquake(commands.Cog):
                 formatted_time = earthquake_time.strftime('%H時%M分')
                 japan_timezone = pytz.timezone('Asia/Tokyo')
                 current_time = datetime.now(japan_timezone).strftime('%Y/%m/%d %H:%M')
-                embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度{round(data['maxScale'] / 10)}の地震がありました。\n{isArea}", color=color)
+                embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度**{round(data['maxScale'] / 10)}**の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
