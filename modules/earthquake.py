@@ -98,10 +98,9 @@ class earthquake(commands.Cog):
     @tasks.loop(seconds=2)
     async def eew_check(self):
         now = util.eew_now()
-        print(now)
         if now == 0:
             return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241208225858.json")
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
         if res.status_code == 200:
             data = res.json()
             cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
