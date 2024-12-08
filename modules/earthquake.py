@@ -191,7 +191,7 @@ class earthquake(commands.Cog):
                 else:
                     color = 0x6c757d  # デフォルト色
 
-                time = util.eew_origin_time(data['origin_time'])
+                
                 embed = nextcord.Embed(title="地震情報", description=f"{data['time']}頃、最大震度{round(data['maxScale'] / 10)}の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="発生時刻", value=data['time'], inline=False)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
@@ -200,7 +200,6 @@ class earthquake(commands.Cog):
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
                 embed.add_field(name="", value=isArea, inline=False)
                 embed.set_footer(text=data['time'])
-                embed.set_thumbnail(image)
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
                 with open('json/id.json', 'r') as f:
