@@ -169,7 +169,7 @@ class earthquake(commands.Cog):
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
                     color = 0x28a745  # 緑色
-                    image = "https://d.kuku.lu/a27zfszb3"
+                    image = "https://f.yourl.jp/2e234b32/"
                 elif max_scale == 2:
                     color = 0x28a745  # 緑色
                     image = "images/shindo2.png"
