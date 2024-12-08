@@ -50,28 +50,52 @@ class auth_rule(nextcord.ui.View):
         json.dump(auth,f,indent=2)
 
 class auth_code2(nextcord.ui.Modal):
-  def __init__(self):
-    super().__init__("認証コード画面",timeout=None)
-    self.add_item(nextcord.ui.TextInput(
-			label="認証",
-      placeholder="コードを入力して下さい(000000)",style=nextcord.TextInputStyle.paragraph,min_length=6,max_length=6))
+    def __init__(self):
+        super().__init__(title="認証コード画面", timeout=None)
+        # 認証コード入力フィールドを追加
+        self.code_input = nextcord.ui.TextInput(
+            label="認証コード",
+            placeholder="コードを入力してください (6桁)",
+            style=nextcord.TextInputStyle.short,
+            min_length=6,
+            max_length=6
+        )
+        self.add_item(self.code_input)
 
-  #callback
-  async def on_submit(self,interaction:nextcord.Interaction):
-    #global answer
-    with open('json/id.json', 'r') as f:
-      id = json.load(f)
-      answer = "".join(f"{x}" for x in id['auth'])
-      answer = "".join(answer)
-      answer2 = self.auth_code2.value
-      if answer2 == answer:
-        role = nextcord.utils.get(interaction.guild.roles, name="user")
-        await interaction.user.add_roles(role)
-        embed=nextcord.Embed(title="userロールを付与しました",color=0x00ffee)
-        await interaction.channel.send(embed=embed,ephemeral=True)
-      else:
-        embed=nextcord.Embed(title="userロールの付与に失敗しました",color=0xff0000,ephemeral=True)
-        await interaction.channel.send(embed=embed)
+    async def on_submit(self, interaction: nextcord.Interaction):
+        # JSONファイルから認証コードを取得
+        with open('json/id.json', 'r') as f:
+            id_data = json.load(f)
+            saved_code = id_data.get('auth', "")
+
+        # 入力された認証コードと比較
+        input_code = self.code_input.value
+        if input_code == saved_code:
+            # 認証成功
+            role = nextcord.utils.get(interaction.guild.roles, name="user")
+            if role:
+                await interaction.user.add_roles(role)
+                embed = nextcord.Embed(
+                    title="認証成功",
+                    description="userロールを付与しました。",
+                    color=0x00ffee
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            else:
+                embed = nextcord.Embed(
+                    title="エラー",
+                    description="userロールが見つかりませんでした。",
+                    color=0xff0000
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            # 認証失敗
+            embed = nextcord.Embed(
+                title="認証失敗",
+                description="認証コードが正しくありません。",
+                color=0xff0000
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 class auth_code(nextcord.ui.View):
   def __init__(self):
