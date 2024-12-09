@@ -9,6 +9,8 @@ with open('json/config.json','r') as f:
 	config = json.load(f)
 
 color = nextcord.Colour(int(config['color'],16))
+# 認証コードを保存する辞書 (ユーザーIDをキー、認証コードを値にする)
+auth_codes = {}
 
 class auth(commands.Cog):
   def __init__(self, bot):
@@ -17,9 +19,6 @@ class auth(commands.Cog):
   @commands.Cog.listener()
   async def on_ready(self):
     print(Fore.BLUE + "|auth          |" + Fore.RESET)
-# 認証コードを保存する辞書 (ユーザーIDをキー、認証コードを値にする)
-auth_codes = {}
-
 
 # 認証コードを生成するコマンド
   @bot.slash_command(description="認証コードを生成します")
