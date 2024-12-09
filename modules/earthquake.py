@@ -95,7 +95,7 @@ class earthquake(commands.Cog):
                 return
 
             # 最新の緊急地震速報データを取得
-            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
             if res.status_code != 200:
                 return
 
