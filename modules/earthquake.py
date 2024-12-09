@@ -69,7 +69,7 @@ def load_data_from_db():
         conn.close()
 
 # 初期化処理
-test_db_connection()
+connect_db()
 initialize_database()
 
 # 設定ファイル読み込み
