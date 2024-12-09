@@ -27,29 +27,17 @@ class auth(commands.Cog):
         user = interaction.user
         code = ''.join(random.choices(string.digits, k=6))
         auth_codes[user.id] = code
-        embed = nextcord.Embed(title="必ずルールを全て読んでから認証をして下さい", description="", color=color)
+        embed = nextcord.Embed(title="必ずルールを全て読んでから認証をして下さい", description="1. 他者が嫌がるようなことはしないでください。\n"
+                        "2. 荒らすような行為はしないでください。\n"
+                        "3. 他鯖の招待リンクの添付は控えて下さい。\n"
+                        "4. この鯖でBOTを使用する場合はコマンドチャンネルでお願いします。\n"
+                        "以上のルールを守るようお願いします！", color=color)
         await interaction.response.send_message(embed=embed, view=auth_rule(), ephemeral=True)
 
     # 認証用のルールとコード取得ボタンのビュー
 class auth_rule(nextcord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.code_show.disabled = True
-
-    @nextcord.ui.button(label="ルールを表示", style=nextcord.ButtonStyle.green)
-    async def rule_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        embed = nextcord.Embed(
-            title="ルール",
-            description="1. 他者が嫌がるようなことはしないでください。\n"
-                        "2. 荒らすような行為はしないでください。\n"
-                        "3. 他鯖の招待リンクの添付は控えて下さい。\n"
-                        "4. この鯖でBOTを使用する場合はコマンドチャンネルでお願いします。\n"
-                        "以上のルールを守るようお願いします！",
-            color=color
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        self.code_show.normal = True
-        await interaction.message.edit(view=self)
 
     @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
     async def code_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
