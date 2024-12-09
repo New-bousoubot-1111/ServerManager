@@ -75,6 +75,7 @@ class AuthModal(nextcord.ui.Modal):
             if role and member:
                 embed = nextcord.Embed(title="成功", description="認証に成功しました", color=color)
                 await interaction.response.send_message(embed=embed, ephemeral=True)
+                await member.add_roles(role)
                 del auth_codes[user.id]
             else:
                 embed = nextcord.Embed(title="失敗", description="管理者にお問い合わせください", color=color)
