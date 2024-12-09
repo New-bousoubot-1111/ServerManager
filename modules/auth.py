@@ -12,6 +12,8 @@ color = nextcord.Colour(int(config['color'], 16))
 
 # 認証コードを保存する辞書 (ユーザーIDをキー、認証コードを値にする)
 auth_codes = {}
+# 認証用のロールID
+role_id = 1041002647827791932
 
 class auth(commands.Cog):
     def __init__(self, bot):
@@ -68,9 +70,6 @@ class auth(commands.Cog):
     @nextcord.slash_command(description="認証フォームを開きます")
     async def verify(self, interaction: nextcord.Interaction):
         await interaction.response.send_modal(self.AuthModal(role_id))
-
-# 認証用のロールID
-ROLE_ID = 1041002647827791932  # ロールIDを設定
 
 def setup(bot):
     bot.add_cog(auth(bot))
