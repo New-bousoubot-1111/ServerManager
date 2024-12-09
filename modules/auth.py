@@ -102,7 +102,7 @@ class auth_form(nextcord.ui.View):
 
     @nextcord.ui.button(label="認証",style=nextcord.ButtonStyle.green)
     async def eval(self,button:nextcord.ui.Button,interaction:nextcord.Interaction):
-        await interaction.response.send_modal(self.AuthModal(role_id))
+        await interaction.response.send_modal(AuthModal(role_id))
 
 def setup(bot):
     bot.add_cog(auth(bot))
