@@ -6,6 +6,6 @@ wavelink
 flask
 requests
 deepl
-psycopg2
+asyncpg
 python-dateutil
 pytz
