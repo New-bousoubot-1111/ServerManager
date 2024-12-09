@@ -27,16 +27,46 @@ class auth(commands.Cog):
     @nextcord.slash_command(description="認証コードを生成します")
     async def auth(self, interaction: nextcord.Interaction):
         user = interaction.user
-        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code = ''.join(random.choices(string.digits, k=6))
         auth_codes[user.id] = code
-        await interaction.response.send_message(f"あなたの認証コードは: **{code}** です。このコードを次のフォームに入力してください。", ephemeral=True)
+        embed = nextcord.Embed(title="必ずルールを全て読んでから認証をして下さい", description="", color=color)
+        await interaction.response.send_message(embed=embed, view=auth_rule(), ephemeral=True)
+
+    # 認証用のルールとコード取得ボタンのビュー
+    class auth_rule(nextcord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=None)
+
+        @nextcord.ui.button(label="ルールを表示", style=nextcord.ButtonStyle.green)
+        async def rule_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+            embed = nextcord.Embed(
+                title="ルール",
+                description="1. 他者が嫌がるようなことはしないでください。\n"
+                            "2. 荒らすような行為はしないでください。\n"
+                            "3. 他鯖の招待リンクの添付は控えて下さい。\n"
+                            "4. この鯖でBOTを使用する場合はコマンドチャンネルでお願いします。\n"
+                            "以上のルールを守るようお願いします！",
+                color=color
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
+        async def code_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+            user = interaction.user
+            code = ''.join(random.choices(string.digits, k=6))
+            auth_codes[user.id] = code
+            embed = nextcord.Embed(
+                title="認証コード",
+                description="2分以内にコードを認証してください",
+                color=nextcord.Color.gold()
+            )
+            embed.add_field(name="パスワード", value=code)
+            await interaction.response.send_message(embed=embed, view=AuthModal(), ephemeral=True)
 
     # 認証コード入力用のフォーム
     class AuthModal(nextcord.ui.Modal):
         def __init__(self, role_id):
-            super().__init__(
-                title="認証コード入力",
-            )
+            super().__init__(title="認証コード入力")
             self.code_input = nextcord.ui.TextInput(
                 label="認証コード",
                 placeholder="認証コードを入力してください。",
@@ -48,7 +78,6 @@ class auth(commands.Cog):
         async def callback(self, interaction: nextcord.Interaction):
             user = interaction.user
             input_code = self.code_input.value
-
             # 入力されたコードをチェック
             if auth_codes.get(user.id) == input_code:
                 # ユーザーにロールを付与
