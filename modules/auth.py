@@ -36,6 +36,7 @@ class auth(commands.Cog):
 class auth_rule(nextcord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
+        self.code_button.disabled = True  # 最初はコード取得ボタンを無効にする
 
     @nextcord.ui.button(label="ルールを表示", style=nextcord.ButtonStyle.green)
     async def rule_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -49,6 +50,8 @@ class auth_rule(nextcord.ui.View):
             color=color
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
+        self.code_button.disabled = False  # ルールが表示された後にコード取得ボタンを有効にする
+        await interaction.message.edit(view=self)  # ボタンの状態を更新
 
     @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
     async def code_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -86,25 +89,24 @@ class AuthModal(nextcord.ui.Modal):
             member = guild.get_member(user.id)
 
             if role and member:
-                await member.add_roles(role)
-                embed = nextcord.Embed(title="成功",description="認証に成功しました",color=color)
+                embed = nextcord.Embed(title="成功", description="認証に成功しました", color=color)
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 # 認証コードを削除
                 del auth_codes[user.id]
             else:
-                embed = nextcord.Embed(title="失敗",description="管理者にお問い合わせください",color=color)
+                embed = nextcord.Embed(title="失敗", description="管理者にお問い合わせください", color=color)
                 await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
-            embed = nextcord.Embed(title="失敗",description="認証コードが一致しません",color=color)
+            embed = nextcord.Embed(title="失敗", description="認証コードが一致しません", color=color)
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
 class auth_form(nextcord.ui.View):
     def __init__(self):
-      super().__init__(timeout=None)
-      self.value = None
+        super().__init__(timeout=None)
+        self.value = None
 
-    @nextcord.ui.button(label="認証",style=nextcord.ButtonStyle.green)
-    async def eval(self,button:nextcord.ui.Button,interaction:nextcord.Interaction):
+    @nextcord.ui.button(label="認証", style=nextcord.ButtonStyle.green)
+    async def eval(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.response.send_modal(AuthModal(role_id))
 
 def setup(bot):
