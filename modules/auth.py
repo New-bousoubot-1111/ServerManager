@@ -58,7 +58,7 @@ class auth_rule(nextcord.ui.View):
         embed = nextcord.Embed(
             title="認証コード",
             description="2分以内にコードを認証してください",
-            color=nextcord.Color.gold()
+            color=color
         )
         embed.add_field(name="パスワード", value=code)
         await interaction.response.send_message(embed=embed, view=AuthModal(), ephemeral=True)
