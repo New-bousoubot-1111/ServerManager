@@ -10,9 +10,7 @@ with open('json/config.json', 'r') as f:
 
 color = nextcord.Colour(int(config['color'], 16))
 
-# 認証コードを保存する辞書 (ユーザーIDをキー、認証コードを値にする)
 auth_codes = {}
-# 認証用のロールID
 role_id = 1041002647827791932
 
 class auth(commands.Cog):
@@ -36,7 +34,7 @@ class auth(commands.Cog):
 class auth_rule(nextcord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.code_button.disabled = True  # 最初はコード取得ボタンを無効にする
+        self.code_show.disabled = True
 
     @nextcord.ui.button(label="ルールを表示", style=nextcord.ButtonStyle.green)
     async def rule_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -50,8 +48,8 @@ class auth_rule(nextcord.ui.View):
             color=color
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        self.code_button.disabled = False  # ルールが表示された後にコード取得ボタンを有効にする
-        await interaction.message.edit(view=self)  # ボタンの状態を更新
+        self.code_show.disabled = False
+        await interaction.message.edit(view=self)
 
     @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
     async def code_show(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -81,9 +79,7 @@ class AuthModal(nextcord.ui.Modal):
     async def callback(self, interaction: nextcord.Interaction):
         user = interaction.user
         input_code = self.code_input.value
-        # 入力されたコードをチェック
         if auth_codes.get(user.id) == input_code:
-            # ユーザーにロールを付与
             guild = interaction.guild
             role = guild.get_role(self.role_id)
             member = guild.get_member(user.id)
@@ -91,7 +87,6 @@ class AuthModal(nextcord.ui.Modal):
             if role and member:
                 embed = nextcord.Embed(title="成功", description="認証に成功しました", color=color)
                 await interaction.response.send_message(embed=embed, ephemeral=True)
-                # 認証コードを削除
                 del auth_codes[user.id]
             else:
                 embed = nextcord.Embed(title="失敗", description="管理者にお問い合わせください", color=color)
