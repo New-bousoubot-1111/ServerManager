@@ -6,8 +6,8 @@ from colorama import Fore
 import psycopg2
 import os
 import util
-from dateutil import parser
 from datetime import datetime
+from dateutil import parser
 import pytz
 
 # PostgreSQL接続情報（Railwayの環境変数を使用）
@@ -25,13 +25,13 @@ def connect_db():
 # データベース初期化
 def initialize_database():
     conn = connect_db()
-    print("Database connection successful")
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS earthquake_cache (
                     id SERIAL PRIMARY KEY,
-                    data JSONB
+                    report_time TEXT NOT NULL,
+                    data JSONB NOT NULL
                 );
             """)
             conn.commit()
@@ -41,17 +41,17 @@ def initialize_database():
         conn.close()
 
 # データを保存する関数
-def save_data_to_db(data):
+def save_data_to_db(report_time, data):
     conn = connect_db()
     try:
-        # JSONデータの検証とエンコード
-        validated_data = json.dumps(data, ensure_ascii=False)
         with conn.cursor() as cursor:
-            cursor.execute("INSERT INTO earthquake_cache (data) VALUES (%s)", (validated_data,))
+            cursor.execute(
+                "INSERT INTO earthquake_cache (report_time, data) VALUES (%s, %s) ON CONFLICT (report_time) DO NOTHING;",
+                (report_time, json.dumps(data))
+            )
             conn.commit()
     except Exception as e:
         print(f"Error saving data to database: {e}")
-        print(f"Data: {data}")  # デバッグ用
     finally:
         conn.close()
 
@@ -64,10 +64,10 @@ def load_data_from_db():
             result = cursor.fetchone()
             if result:
                 return json.loads(result[0])
-            return {}
+            return None
     except Exception as e:
         print(f"Error loading data from database: {e}")
-        return {}
+        return None
     finally:
         conn.close()
 
@@ -82,7 +82,6 @@ color = nextcord.Colour(int(config['color'], 16))
 class earthquake(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.id = None
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -96,54 +95,35 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-        try:
-            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
-            if res.status_code == 200:
-                data = res.json()
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+        if res.status_code == 200:
+            data = res.json()
+            cache = load_data_from_db()  # キャッシュをPostgreSQLから取得
+            if cache is None or cache.get('report_time') != data['report_time']:
+                eew_channel = self.bot.get_channel(int(config['eew_channel']))
+                if data['is_training'] or data['result']['message'] != "":
+                    return
 
-                # キャッシュデータをロード
-                cache = load_data_from_db()
-                if data['result']['message'] == "":
-                    if cache.get('report_time') != data['report_time']:
-                        eew_channel = self.bot.get_channel(int(config['eew_channel']))
-                        if data['is_training']:
-                            return
-                        if data['is_cancel']:
-                            embed = nextcord.Embed(
-                                title="緊急地震速報がキャンセルされました",
-                                description="先ほどの緊急地震速報はキャンセルされました",
-                                color=color
-                            )
-                            await eew_channel.send(embed=embed)
-                            return
+                if data['is_cancel']:
+                    embed = nextcord.Embed(
+                        title="緊急地震速報がキャンセルされました",
+                        description="先ほどの緊急地震速報はキャンセルされました",
+                        color=color
+                    )
+                    await eew_channel.send(embed=embed)
+                    return
 
-                        # 警報と予報の処理
-                        if data['alertflg'] == "予報":
-                            title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                            color2 = 0x00ffee
-                        elif data['alertflg'] == "警報":
-                            title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                            color2 = 0xff0000
-                        else:
-                            title = f"緊急地震速報 第{data['report_num']}報"
-                            color2 = 0x6c757d
+                alert_flag = data['alertflg']
+                title = f"緊急地震速報 第{data['report_num']}報({alert_flag})"
+                color2 = 0xff0000 if alert_flag == "警報" else 0x00ffee
+                description = (
+                    f"{util.eew_time()}{util.eew_origin_time(data['origin_time'])}頃、**{data['region_name']}**で地震が発生しました。\n"
+                    f"最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。"
+                )
+                embed = nextcord.Embed(title=title, description=description, color=color2)
+                await eew_channel.send(embed=embed)
 
-                        # メッセージの構築
-                        time = util.eew_time()
-                        time2 = util.eew_origin_time(data['origin_time'])
-                        embed = nextcord.Embed(
-                            title=title,
-                            description=f"{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n"
-                                        f"最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、"
-                                        f"マグニチュードは**{data['magunitude']}**と推定されます。",
-                            color=color2
-                        )
-                        await eew_channel.send(embed=embed)
-
-                        # キャッシュを保存
-                        save_data_to_db(data)
-        except Exception as e:
-            print(f"Error in eew_check: {e}")
+                save_data_to_db(data['report_time'], data)  # PostgreSQLにデータを保存
 
     # 地震情報
     @tasks.loop(seconds=2)
@@ -205,4 +185,4 @@ class earthquake(commands.Cog):
                 return
 
 def setup(bot):
-    return bot.add_cog(earthquake(bot))
+    bot.add_cog(earthquake(bot))
