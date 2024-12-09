@@ -60,7 +60,7 @@ class auth_rule(nextcord.ui.View):
             description="2分以内にコードを認証してください",
             color=color
         )
-        embed.add_field(name="パスワード", value=code)
+        embed.add_field(name="コード", value=code)
         await interaction.response.send_message(embed=embed, view=auth_form(), ephemeral=True)
 
 # 認証コード入力用のフォーム
@@ -87,13 +87,16 @@ class AuthModal(nextcord.ui.Modal):
 
             if role and member:
                 await member.add_roles(role)
-                await interaction.response.send_message("認証に成功しました！ロールを付与しました。", ephemeral=True)
+                embed = nextcord.Embed(title="成功",description="認証に成功しました",color=color)
+                await interaction.response.send_message(embed=embed, ephemeral=True)
                 # 認証コードを削除
                 del auth_codes[user.id]
             else:
-                await interaction.response.send_message("ロールの付与に失敗しました。管理者にお問い合わせください。", ephemeral=True)
+                embed = nextcord.Embed(title="失敗",description="管理者にお問い合わせください",color=color)
+                await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
-            await interaction.response.send_message("認証コードが一致しません。もう一度お試しください。", ephemeral=True)
+            embed = nextcord.Embed(title="失敗",description="認証コードが一致しません",color=color)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 class auth_form(nextcord.ui.View):
     def __init__(self):
