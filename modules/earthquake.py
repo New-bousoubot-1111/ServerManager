@@ -25,7 +25,6 @@ def connect_db():
 # データベース初期化
 def initialize_database():
     conn = connect_db()
-    print("Database connection successful")
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
@@ -37,7 +36,6 @@ def initialize_database():
             conn.commit()
     except Exception as e:
         print(f"Error initializing database: {e}")
-        print(f"DATABASE_URL: {DATABASE_URL}")
     finally:
         conn.close()
 
@@ -72,23 +70,6 @@ def load_data_from_db():
 # 初期化処理
 initialize_database()
 
-def initialize_database():
-    conn = connect_db()
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS earthquake_cache (
-                    id SERIAL PRIMARY KEY,
-                    data JSONB
-                );
-            """)
-            conn.commit()
-    finally:
-        conn.close()
-
-# Bot起動時にデータベースを初期化
-initialize_database()
-
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
@@ -97,7 +78,6 @@ color = nextcord.Colour(int(config['color'], 16))
 class earthquake(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.id = None
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -108,61 +88,75 @@ class earthquake(commands.Cog):
     # 緊急地震速報
     @tasks.loop(seconds=2)
     async def eew_check(self):
-        now = util.eew_now()
-        if now == 0:
-            return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
-        print(now)
-        if res.status_code == 200:
+        try:
+            # 現在時刻の取得
+            now = util.eew_now()
+            if now == 0:
+                return
+
+            # 最新の緊急地震速報データを取得
+            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+            if res.status_code != 200:
+                return
+
             data = res.json()
             cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
-            if data['result']['message'] == "":
-                if cache.get('report_time') != data['report_time']:
-                    eew_channel = self.bot.get_channel(int(config['eew_channel']))
-                    image = False
-                    if data['is_training'] == True:
-                        return
-                    if data['is_cancel'] == True:
-                        embed = nextcord.Embed(
-                            title="緊急地震速報がキャンセルされました",
-                            description="先ほどの緊急地震速報はキャンセルされました",
-                            color=color
-                        )
-                        await eew_channel.send(embed=embed)
-                        return
-                    if data['alertflg'] == "予報":
-                        start_text = ""
-                        if data['is_final'] == False:
-                            title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                            color2 = 0x00ffee  # ブルー
-                        else:
-                            title = f"緊急地震速報 最終報(予報)"
-                            color2 = 0x00ffee  # ブルー
-                            image = True
-                    if data['alertflg'] == "警報":
-                        start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
-                        if data['is_final'] == False:
-                            title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                            color2 = 0xff0000  # レッド
-                        else:
-                            title = f"緊急地震速報 最終報(警報)"
-                            color2 = 0xff0000  # レッド
-                            image = True
 
-                    time = util.eew_time()
-                    time2 = util.eew_origin_time(data['origin_time'])
+            # 緊急地震速報のデータが空でない場合
+            if data['result']['message'] == "":
+                # キャッシュとの比較
+                if cache and cache.get('report_time') == data['report_time'] and cache.get('report_num') == data['report_num']:
+                    return  # 既に送信済みの速報であれば何もしない
+
+                eew_channel = self.bot.get_channel(int(config['eew_channel']))
+                image = False
+
+                if data['is_training']:
+                    return  # 訓練モードは無視
+
+                if data['is_cancel']:
+                    # キャンセル速報の場合
                     embed = nextcord.Embed(
-                        title=title,
-                        description=f"{start_text}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}**、マグニチュードは**{data['magunitude']}**と推定されます。",
-                        color=color2
+                        title="緊急地震速報がキャンセルされました",
+                        description="先ほどの緊急地震速報はキャンセルされました",
+                        color=color
                     )
                     await eew_channel.send(embed=embed)
-                    if data['report_num'] == "1":
-                        image = True
-                    if image == True:
-                        await util.eew_image(eew_channel)
-                # PostgreSQLにキャッシュを保存
+                    save_data_to_db(data)  # キャンセル情報をキャッシュに保存
+                    return
+
+                # 通常の緊急地震速報メッセージ作成
+                if data['alertflg'] == "予報":
+                    start_text = ""
+                    title = f"緊急地震速報 第{data['report_num']}報(予報)"
+                    alert_color = 0x00ffee  # ブルー
+                    image = data['is_final']  # 最終報であれば画像送信
+                elif data['alertflg'] == "警報":
+                    start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
+                    title = f"緊急地震速報 第{data['report_num']}報(警報)"
+                    alert_color = 0xff0000  # レッド
+                    image = True
+
+                # 発生時刻と震源情報をフォーマット
+                time = util.eew_time()
+                time2 = util.eew_origin_time(data['origin_time'])
+                embed = nextcord.Embed(
+                    title=title,
+                    description=f"{start_text}{time}{time2}頃、**{data['region_name']}**で地震が発生しました。\n"
+                                f"最大予想震度は**{data['calcintensity']}**、震源の深さは**{data['depth']}Km**、"
+                                f"マグニチュードは**{data['magunitude']}**と推定されます。",
+                    color=alert_color
+                )
+                await eew_channel.send(embed=embed)
+
+                # 必要に応じて画像を送信
+                if image:
+                    await util.eew_image(eew_channel)
+
+                # データをキャッシュに保存
                 save_data_to_db(data)
+        except Exception as e:
+            print(f"Error in eew_check: {e}")
 
     # 地震情報
     @tasks.loop(seconds=2)
@@ -224,4 +218,4 @@ class earthquake(commands.Cog):
                 return
 
 def setup(bot):
-    return bot.add_cog(earthquake(bot))
+    bot.add_cog(earthquake(bot))
