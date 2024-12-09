@@ -220,7 +220,7 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032700.json")
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032650.json")
         print(now)
         if res.status_code == 200:
             data = res.json()
