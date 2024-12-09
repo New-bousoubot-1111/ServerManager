@@ -96,7 +96,7 @@ class earthquake(commands.Cog):
             if not now:
                 return
 
-            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+            res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241209032640.json")
             if res.status_code != 200:
                 return
 
