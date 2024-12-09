@@ -101,7 +101,6 @@ class earthquake(commands.Cog):
         if now == 0:
             return
         res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
-        print(now)
         if res.status_code == 200:
             data = res.json()
             cache = load_data_from_db()  # PostgreSQLからキャッシュを取得
