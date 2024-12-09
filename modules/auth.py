@@ -48,7 +48,7 @@ class auth_rule(nextcord.ui.View):
             color=color
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        self.code_show.disabled = False
+        self.code_show.normal = True
         await interaction.message.edit(view=self)
 
     @nextcord.ui.button(label="コードを取得", style=nextcord.ButtonStyle.green)
