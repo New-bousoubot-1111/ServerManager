@@ -61,7 +61,7 @@ class auth_rule(nextcord.ui.View):
             color=color
         )
         embed.add_field(name="パスワード", value=code)
-        await interaction.response.send_message(embed=embed, view=AuthModal(), ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # 認証コード入力用のフォーム
 class AuthModal(nextcord.ui.Modal):
