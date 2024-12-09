@@ -61,7 +61,7 @@ class auth_rule(nextcord.ui.View):
             color=color
         )
         embed.add_field(name="パスワード", value=code)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=auth_form(), ephemeral=True)
 
 # 認証コード入力用のフォーム
 class AuthModal(nextcord.ui.Modal):
@@ -95,10 +95,14 @@ class AuthModal(nextcord.ui.Modal):
         else:
             await interaction.response.send_message("認証コードが一致しません。もう一度お試しください。", ephemeral=True)
 
-# 認証フォームを開くコマンド
-@nextcord.slash_command(description="認証フォームを開きます")
-async def verify(self, interaction: nextcord.Interaction):
-    await interaction.response.send_modal(self.AuthModal(role_id))
+class auth_form(nextcord.ui.View):
+    def __init__(self):
+      super().__init__(timeout=None)
+      self.value = None
+
+    @nextcord.ui.button(label="認証",style=nextcord.ButtonStyle.green)
+    async def eval(self,button:nextcord.ui.Button,interaction:nextcord.Interaction):
+        await interaction.response.send_modal(self.AuthModal(role_id))
 
 def setup(bot):
     bot.add_cog(auth(bot))
