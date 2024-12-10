@@ -222,9 +222,10 @@ class earthquake(commands.Cog):
                     )
                     embed.add_field(name="発表時刻", value=tsunami.get("time", "不明"))
                     for area in tsunami.get("areas", []):
-                        first_height = area.get("firstHeight", "maxHeight", {})
+                        first_height = area.get("firstHeight", {})
+                        maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
-                        description = first_height.get("description", "不明")
+                        description = maxHeight.get("description", "不明")
                         embed.add_field(
                             name=area["name"],
                             value=f"到達予想時刻: {first_height.get('arrivalTime', '不明')}\n予想高さ: {description}\n{condition}",
