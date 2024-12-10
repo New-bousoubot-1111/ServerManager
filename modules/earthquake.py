@@ -203,6 +203,7 @@ class earthquake(commands.Cog):
             else:
                 return
 
+    #津波情報
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
@@ -214,21 +215,33 @@ class earthquake(commands.Cog):
                     tsunami_id = tsunami.get("id")
                     if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                         continue
+                    
+                    # Embedメッセージの作成
                     embed = nextcord.Embed(
                         title="津波警報",
                         description="津波警報が発表されました。安全な場所に避難してください。",
                         color=0xff0000
                     )
                     embed.add_field(name="発表時刻", value=tsunami.get("time", "不明"))
+                    
                     for area in tsunami.get("areas", []):
+                        # `description` と `condition` を取得
+                        first_height = area.get("firstHeight", {})
+                        condition = first_height.get("condition", "不明")
+                        description = first_height.get("description", "不明")
+                        
                         embed.add_field(
-                            name=area["name"],
-                            value=f"{area['condition', '不明']}\n予想高さ: {area.get('height', '不明')}",
+                            name=area.get("name", "不明"),
+                            value=f"到達予想時刻: {first_height.get('arrivalTime', '不明')}\n"
+                                  f"予想高さ: {description}\n"
+                                  f"状態: {condition}",
                             inline=False
                         )
-                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+                    
+                    tsunami_channel = self.bot.get_channel(int(self.config['eew_channel']))
                     if tsunami_channel:
                         await tsunami_channel.send(embed=embed)
+                    
                     self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
 
