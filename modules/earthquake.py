@@ -215,10 +215,6 @@ class earthquake(commands.Cog):
                     tsunami_id = tsunami.get("id")
                     if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                         continue
-
-                    first_height = area.get("firstHeight", {})
-                    condition = first_height.get("condition", "不明")
-                    description = first_height.get("description", "不明")
                     embed = nextcord.Embed(
                         title="津波警報",
                         description="津波警報が発表されました。安全な場所に避難してください。",
