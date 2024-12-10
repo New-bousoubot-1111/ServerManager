@@ -208,7 +208,7 @@ class earthquake(commands.Cog):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
         response = requests.get(url)
         if response.status_code == 200:
-            data = response.json()[1]
+            data = response.json()
             if data:
                 for tsunami in data:
                     tsunami_id = tsunami.get("id")
