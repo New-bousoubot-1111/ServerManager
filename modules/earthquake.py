@@ -245,13 +245,14 @@ def format_time(self, time_str):
     """
     時間を「YYYY/MM/DD HH時MM分」の形式に変換します。
     """
+    if not time_str:  # 時間データが空またはNoneの場合
+        return "不明"
     try:
-        # 文字列をdatetimeオブジェクトに変換
-        dt = datetime.strptime(time_str, "%Y/%m/%d %H:%M:%S.%f")
-        # フォーマットを変更
+        # 柔軟な時間パース
+        dt = parser.parse(time_str)
         return dt.strftime("%Y/%m/%d %H時%M分")
-    except ValueError:
-        # 時間が取得できなかった場合は「不明」を返す
+    except (ValueError, TypeError) as e:
+        print(f"Error parsing time: {time_str}, Error: {e}")
         return "不明"
 
 def setup(bot):
