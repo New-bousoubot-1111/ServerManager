@@ -209,8 +209,10 @@ class earthquake(commands.Cog):
                     json.dump(id, f, indent=2)
             else:
                 return
-
+    
     #津波情報
+arrival_time = first_height.get('arrivalTime', '不明')
+    
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
@@ -235,7 +237,7 @@ class earthquake(commands.Cog):
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
-                        tsunami_time2 = parser.parse(first_height.get['arrivalTime', '不明'])
+                        tsunami_time2 = datetime.strptime(arrival_time, '%Y-%m-%d %H:%M:%S')
                         formatted_time2 = tsunami_time2.strftime('%Y/%m/%d %H時%M分')
                         embed.add_field(
                             name=area["name"],
