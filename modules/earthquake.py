@@ -215,7 +215,6 @@ class earthquake(commands.Cog):
                     tsunami_id = tsunami.get("id")
                     if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                         continue
-                    
                     # Embedメッセージの作成
                     embed = nextcord.Embed(
                         title="津波警報",
@@ -239,8 +238,7 @@ class earthquake(commands.Cog):
                         )
                     
                     tsunami_channel = self.bot.get_channel(int(self.config['eew_channel']))
-                    if tsunami_channel:
-                        await tsunami_channel.send(embed=embed)
+                    await tsunami_channel.send(embed=embed)
                     
                     self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
