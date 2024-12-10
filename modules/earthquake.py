@@ -237,7 +237,7 @@ class earthquake(commands.Cog):
                         description = maxHeight.get("description", "不明")
                         embed.add_field(
                             name=area["name"],
-                            value=f"到達予想時刻: {first_height.get("arrivalTime", "不明")}\n予想高さ: {description}\n{condition}",
+                            value=f"到達予想時刻: {first_height.get('arrivalTime', '不明')}\n予想高さ: {description}\n{condition}",
                             inline=False
                         )
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
