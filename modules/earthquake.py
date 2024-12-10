@@ -228,7 +228,7 @@ class earthquake(commands.Cog):
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
-                        tsunami_time2 = parser.parse(first_height.get('arrivalTime', '不明'))
+                        tsunami_time2 = parser.parse(first_height.get("arrivalTime", "不明"))
                         formatted_time2 = tsunami_time2.strftime('%Y/%m/%d %H時%M分')
                         embed.add_field(
                             name=area["name"],
