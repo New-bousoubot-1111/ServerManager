@@ -220,16 +220,16 @@ class earthquake(commands.Cog):
                         description="津波警報が発表されました。安全な場所に避難してください。",
                         color=0xff0000
                     )
-                    original_time = tsunami.get("time", "不明")
-                    formatted_time = self.format_time(original_time)
+                    tsunami_time = parser.parse(tsunami.get("time", "不明"))
+                    formatted_time = tsunami_time.strftime('%H時%M分')
                     embed.add_field(name="発表時刻", value=formatted_time)
                     for area in tsunami.get("areas", []):
                         first_height = area.get("firstHeight", {})
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
-                        arrival_time = first_height.get("arrivalTime", "不明")
-                        formatted_arrival_time = self.format_time(arrival_time)
+                        tsunami_time2 = parser.parse(area.get('arrival_time', '不明'))
+                        formatted_arrival_time = tsunami_time2.strftime('%H時%M分')
                         embed.add_field(
                             name=area["name"],
                             value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
@@ -240,20 +240,6 @@ class earthquake(commands.Cog):
                         await tsunami_channel.send(embed=embed)
                     self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
-
-def format_time(self, time_str):
-    """
-    時間を「YYYY/MM/DD HH時MM分」の形式に変換します。
-    """
-    if not time_str:  # 時間データが空またはNoneの場合
-        return "不明"
-    try:
-        # 柔軟な時間パース
-        dt = parser.parse(time_str)
-        return dt.strftime("%Y/%m/%d %H時%M分")
-    except (ValueError, TypeError) as e:
-        print(f"Error parsing time: {time_str}, Error: {e}")
-        return "不明"
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
