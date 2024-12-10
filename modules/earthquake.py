@@ -180,6 +180,7 @@ class earthquake(commands.Cog):
                     json.dump(id, f, indent=2)
             else:
                 return
+                
     @tasks.loop(seconds=2)
     async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
@@ -191,7 +192,6 @@ class earthquake(commands.Cog):
                     tsunami_id = tsunami.get("id")  # 各津波情報のユニークなIDを取得
                     if tsunami_id in self.tsunami_sent_ids:
                         continue  # 既に送信した情報はスキップ
-
                     # 必要な情報を抽出してEmbedを作成
                     embed = nextcord.Embed(
                         title="津波警報",
@@ -205,11 +205,9 @@ class earthquake(commands.Cog):
                             value=f"到達予想時刻: {area.get('arrival_time', '不明')}\n予想高さ: {area.get('height', '不明')}",
                             inline=False
                         )
-
                     # チャンネルに送信
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     await tsunami_channel.send(embed=embed)
-
                     # 送信済みIDを記録
                     self.tsunami_sent_ids.add(tsunami_id)
 
