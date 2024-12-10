@@ -235,9 +235,18 @@ class earthquake(commands.Cog):
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
+                        arrival_time = first_height.get('arrivalTime', '不明')
+                        if arrival_time != '不明':
+                            try:
+                                parsed_time = parser.parse(arrival_time)
+                                formatted_arrival_time = parsed_time.strftime('%Y年%m月%d日 %H時%M分')
+                            except (ValueError, TypeError):
+                                formatted_arrival_time = '不明'
+                        else:
+                            formatted_arrival_time = '不明'
                         embed.add_field(
                             name=area["name"],
-                            value=f"到達予想時刻: {first_height.get('arrivalTime', '不明')}\n予想高さ: {description}\n{condition}",
+                            value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
                             inline=False
                         )
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
