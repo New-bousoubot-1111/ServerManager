@@ -16,6 +16,7 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 color = nextcord.Colour(int(config['color'], 16))
+arrival_time = first_height.get('arrivalTime', '不明')
 
 class earthquake(commands.Cog):
     def __init__(self, bot):
@@ -211,8 +212,6 @@ class earthquake(commands.Cog):
                 return
     
     #津波情報
-arrival_time = first_height.get('arrivalTime', '不明')
-    
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
