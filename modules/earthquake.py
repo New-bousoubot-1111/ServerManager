@@ -16,7 +16,6 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 color = nextcord.Colour(int(config['color'], 16))
-arrival_time = first_height.get('arrivalTime', '不明')
 
 class earthquake(commands.Cog):
     def __init__(self, bot):
@@ -236,11 +235,9 @@ class earthquake(commands.Cog):
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
-                        tsunami_time2 = datetime.strptime(arrival_time, '%Y-%m-%d %H:%M:%S')
-                        formatted_time2 = tsunami_time2.strftime('%Y/%m/%d %H時%M分')
                         embed.add_field(
                             name=area["name"],
-                            value=f"到達予想時刻: {formatted_time2}\n予想高さ: {description}\n{condition}",
+                            value=f"到達予想時刻: {first_height.get('arrivalTime', '不明')}\n予想高さ: {description}\n{condition}",
                             inline=False
                         )
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
