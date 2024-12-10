@@ -222,7 +222,7 @@ class earthquake(commands.Cog):
                     )
                     original_time = tsunami.get("time", "不明")
                     formatted_time = self.format_time(original_time)
-                    embed.add_field(name="発表時刻", value=tsunami.get("formatted_time", "不明"))
+                    embed.add_field(name="発表時刻", value=formatted_time)
                     for area in tsunami.get("areas", []):
                         first_height = area.get("firstHeight", {})
                         maxHeight = area.get("maxHeight", {})
@@ -242,17 +242,17 @@ class earthquake(commands.Cog):
                     self.save_tsunami_sent_ids()
 
 def format_time(self, time_str):
-        """
-        時間を「YYYY/MM/DD HH時MM分」の形式に変換します。
-        """
-        try:
-            # 文字列をdatetimeオブジェクトに変換
-            dt = datetime.strptime(time_str, "%Y/%m/%d %H:%M:%S.%f")
-            # フォーマットを変更
-            return dt.strftime("%Y/%m/%d %H時%M分")
-        except ValueError:
-            # 時間が取得できなかった場合は「不明」を返す
-            return "不明"
+    """
+    時間を「YYYY/MM/DD HH時MM分」の形式に変換します。
+    """
+    try:
+        # 文字列をdatetimeオブジェクトに変換
+        dt = datetime.strptime(time_str, "%Y/%m/%d %H:%M:%S.%f")
+        # フォーマットを変更
+        return dt.strftime("%Y/%m/%d %H時%M分")
+    except ValueError:
+        # 時間が取得できなかった場合は「不明」を返す
+        return "不明"
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
