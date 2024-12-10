@@ -57,6 +57,7 @@ class earthquake(commands.Cog):
         await self.setup_db()
         self.eew_check.start()
         self.eew_info.start()
+        self.check_tsunami.start()
 
     # 緊急地震速報
     @tasks.loop(seconds=2)
@@ -139,29 +140,21 @@ class earthquake(commands.Cog):
         hypocenter = data['hypocenter']
         if request.status_code == 200:
             if id != response['id']:
-                # 震度に応じた色の設定
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
                     color = 0x6c757d  # グレー
-                    image = "images/shindo1.png"
                 elif max_scale == 2:
                     color = 0x6c757d  # グレー
-                    image = "images/shindo2.png"
                 elif max_scale == 3:
                     color = 0x28a745  # 緑色
-                    image = "images/shindo3.png"
                 elif max_scale == 4:
                     color = 0xffc107  # 黄色
-                    image = "images/shindo4.png"
                 elif max_scale == 5:
                     color = 0xff7f00  # オレンジ色
-                    image = "images/shindo5.png"
                 elif max_scale == 6:
                     color = 0xdc3545  # 赤色
-                    image = "images/shindo6.png"
                 elif max_scale == 7:
                     color = 0x6f42c1  # 紫色
-                    image = "images/shindo7.png"
                 else:
                     color = 0x6c757d  # デフォルト色
 
@@ -169,7 +162,11 @@ class earthquake(commands.Cog):
                 formatted_time = earthquake_time.strftime('%H時%M分')
                 japan_timezone = pytz.timezone('Asia/Tokyo')
                 current_time = datetime.now(japan_timezone).strftime('%Y/%m/%d %H:%M')
-                embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度**{round(data['maxScale'] / 10)}**の地震がありました。\n{isArea}", color=color)
+                embed = nextcord.Embed(
+                    title="地震情報",
+                    description=f"{formatted_time}頃、最大震度**{round(data['maxScale'] / 10)}**の地震がありました。\n{isArea}",
+                    color=color
+                )
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
@@ -183,6 +180,29 @@ class earthquake(commands.Cog):
                     json.dump(id, f, indent=2)
             else:
                 return
+
+    @tasks.loop(seconds=2)
+    async def check_tsunami(self):
+        url = "https://api.p2pquake.net/v2/jma/tsunami"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                for tsunami in data:
+                    embed = nextcord.Embed(
+                        title="津波警報",
+                        description="津波警報が発表されました。安全な場所に避難してください。",
+                        color=0xff0000
+                    )
+                    embed.add_field(name="発表時刻", value=tsunami.get("time"))
+                    for area in tsunami.get("areas", []):
+                        embed.add_field(
+                            name=area["name"],
+                            value=f"到達予想時刻: {area.get('arrival_time', '不明')}\n予想高さ: {area.get('height', '不明')}",
+                            inline=False
+                        )
+                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+                    await tsunami_channel.send(embed=embed)
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
