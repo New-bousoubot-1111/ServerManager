@@ -11,18 +11,36 @@ from dateutil import parser
 from datetime import datetime
 import pytz
 
+# 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 color = nextcord.Colour(int(config['color'], 16))
-
 
 class earthquake(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.id = None
         self.pool = None
-        self.tsunami_sent_ids = set()  # 津波情報の送信済みIDを管理
+        self.tsunami_sent_ids = set()
+        self.tsunami_cache_file = 'json/tsunami_id.json'
+
+        # 再起動時に送信済みIDを復元
+        self.load_tsunami_sent_ids()
+
+    def load_tsunami_sent_ids(self):
+        """送信済み津波IDをファイルから読み込む"""
+        if os.path.exists(self.tsunami_cache_file):
+            with open(self.tsunami_cache_file, 'r') as f:
+                try:
+                    self.tsunami_sent_ids = set(json.load(f))
+                except json.JSONDecodeError:
+                    self.tsunami_sent_ids = set()
+
+    def save_tsunami_sent_ids(self):
+        """送信済み津波IDをファイルに保存する"""
+        with open(self.tsunami_cache_file, 'w') as f:
+            json.dump(list(self.tsunami_sent_ids), f)
 
     async def setup_db(self):
         """PostgreSQLとの接続プールを作成します"""
@@ -90,20 +108,22 @@ class earthquake(commands.Cog):
                         start_text = ""
                         if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                            color2 = 0x00ffee
+                            color2 = 0x00ffee  # ブルー
                         else:
                             title = f"緊急地震速報 最終報(予報)"
-                            color2 = 0x00ffee
+                            color2 = 0x00ffee  # ブルー
                             image = True
+                        if data['calcintensity'] in ["5強", "6弱", "6強", "7"]:
+                            start_text = ""
 
                     if data['alertflg'] == "警報":
                         start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
                         if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                            color2 = 0xff0000
+                            color2 = 0xff0000  # レッド
                         else:
                             title = f"緊急地震速報 最終報(警報)"
-                            color2 = 0xff0000
+                            color2 = 0xff0000  # レッド
                             image = True
 
                     time = util.eew_time()
@@ -117,6 +137,8 @@ class earthquake(commands.Cog):
                     )
                     await eew_channel.send(embed=embed)
 
+                    if data['report_num'] == "1":
+                        image = True
                     if image:
                         await util.eew_image(eew_channel)
 
@@ -206,12 +228,12 @@ class earthquake(commands.Cog):
                             inline=False
                         )
 
-                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+                    tsunami_channel = self.bot.get_channel(int(config['tsunami_channel']))
                     if tsunami_channel:
                         await tsunami_channel.send(embed=embed)
 
                     self.tsunami_sent_ids.add(tsunami_id)
-
+                    self.save_tsunami_sent_ids()
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
