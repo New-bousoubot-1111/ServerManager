@@ -208,13 +208,12 @@ class earthquake(commands.Cog):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
         response = requests.get(url)
         if response.status_code == 200:
-            data = response.json()
+            data = response.json()[0]
             if data:
                 for tsunami in data:
                     tsunami_id = tsunami.get("id")
                     if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                         continue
-
                     embed = nextcord.Embed(
                         title="津波警報",
                         description="津波警報が発表されました。安全な場所に避難してください。",
@@ -227,11 +226,9 @@ class earthquake(commands.Cog):
                             value=f"到達予想時刻: {area.get('arrival_time', '不明')}\n予想高さ: {area.get('height', '不明')}",
                             inline=False
                         )
-
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
                         await tsunami_channel.send(embed=embed)
-
                     self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
 
