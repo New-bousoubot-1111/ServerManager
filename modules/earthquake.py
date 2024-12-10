@@ -220,15 +220,19 @@ class earthquake(commands.Cog):
                         description="津波警報が発表されました。安全な場所に避難してください。",
                         color=0xff0000
                     )
-                    embed.add_field(name="発表時刻", value=tsunami.get("time", "不明"))
+                    original_time = tsunami.get("time", "不明")
+                    formatted_time = self.format_time(original_time)
+                    embed.add_field(name="発表時刻", value=tsunami.get("formatted_time", "不明"))
                     for area in tsunami.get("areas", []):
                         first_height = area.get("firstHeight", {})
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
+                        arrival_time = first_height.get("arrivalTime", "不明")
+                        formatted_arrival_time = self.format_time(arrival_time)
                         embed.add_field(
                             name=area["name"],
-                            value=f"到達予想時刻: {first_height.get('arrivalTime', '不明')}\n予想高さ: {description}\n{condition}",
+                            value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
                             inline=False
                         )
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
@@ -236,6 +240,19 @@ class earthquake(commands.Cog):
                         await tsunami_channel.send(embed=embed)
                     self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
+
+def format_time(self, time_str):
+        """
+        時間を「YYYY/MM/DD HH時MM分」の形式に変換します。
+        """
+        try:
+            # 文字列をdatetimeオブジェクトに変換
+            dt = datetime.strptime(time_str, "%Y/%m/%d %H:%M:%S.%f")
+            # フォーマットを変更
+            return dt.strftime("%Y/%m/%d %H時%M分")
+        except ValueError:
+            # 時間が取得できなかった場合は「不明」を返す
+            return "不明"
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
