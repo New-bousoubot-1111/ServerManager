@@ -70,6 +70,13 @@ class earthquake(commands.Cog):
                 ON CONFLICT (key)
                 DO UPDATE SET value = EXCLUDED.value
             """, key, json.dumps(value))
+            
+    def safe_parse_time(time_str, default="不明"):
+        try:
+            dt = parser.parse(time_str)
+            return dt.strftime('%Y/%m/%d %H時%M分')
+        except (ValueError, TypeError):
+            return default
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -220,16 +227,14 @@ class earthquake(commands.Cog):
                         description="津波警報が発表されました。安全な場所に避難してください。",
                         color=0xff0000
                     )
-                    tsunami_time = parser.parse(tsunami.get("time", "不明"))
-                    formatted_time = tsunami_time.strftime('%Y/%m/%d %H時%M分')
+                    formatted_time = safe_parse_time(tsunami.get("time", "不明"))
                     embed.add_field(name="発表時刻", value=formatted_time)
                     for area in tsunami.get("areas", []):
                         first_height = area.get("firstHeight", {})
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
-                        tsunami_time2 = parser.parse(first_height.get("arrivalTime", "不明"))
-                        formatted_time2 = tsunami_time2.strftime('%Y/%m/%d %H時%M分')
+                        formatted_time2 = safe_parse_time(first_height.get("arrivalTime", "不明"))
                         embed.add_field(
                             name=area["name"],
                             value=f"到達予想時刻: {formatted_time2}\n予想高さ: {description}\n{condition}",
