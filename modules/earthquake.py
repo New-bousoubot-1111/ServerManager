@@ -228,7 +228,7 @@ class earthquake(commands.Cog):
                         color=0xff0000
                     )
                     tsunami_time = parser.parse(tsunami.get("time", "不明"))
-                    formatted_time = tsunami_time.strftime('%Y/%m/%d %H時%M分')
+                    formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
                     embed.add_field(name="発表時刻", value=formatted_time)
                     for area in tsunami.get("areas", []):
                         first_height = area.get("firstHeight", {})
