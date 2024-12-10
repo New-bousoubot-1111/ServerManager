@@ -10,3 +10,4 @@ asyncpg
 python-dateutil
 pytz
 geopandas
+matplotlib
