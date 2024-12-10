@@ -66,7 +66,6 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-
         res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
         if res.status_code == 200:
             data = res.json()
@@ -207,7 +206,7 @@ class earthquake(commands.Cog):
                             inline=False
                         )
 
-                    tsunami_channel = self.bot.get_channel(int(config['tsunami_channel']))
+                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
                         await tsunami_channel.send(embed=embed)
 
