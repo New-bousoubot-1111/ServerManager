@@ -16,11 +16,13 @@ with open('json/config.json', 'r') as f:
 
 color = nextcord.Colour(int(config['color'], 16))
 
+
 class earthquake(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.id = None
         self.pool = None
+        self.tsunami_sent_ids = set()  # 津波情報の送信済みIDを管理
 
     async def setup_db(self):
         """PostgreSQLとの接続プールを作成します"""
@@ -59,7 +61,6 @@ class earthquake(commands.Cog):
         self.eew_info.start()
         self.check_tsunami.start()
 
-    # 緊急地震速報
     @tasks.loop(seconds=2)
     async def eew_check(self):
         now = util.eew_now()
@@ -90,22 +91,20 @@ class earthquake(commands.Cog):
                         start_text = ""
                         if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(予報)"
-                            color2 = 0x00ffee  # ブルー
+                            color2 = 0x00ffee
                         else:
                             title = f"緊急地震速報 最終報(予報)"
-                            color2 = 0x00ffee  # ブルー
+                            color2 = 0x00ffee
                             image = True
-                        if data['calcintensity'] in ["5強", "6弱", "6強", "7"]:
-                            start_text = ""
 
                     if data['alertflg'] == "警報":
                         start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
                         if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(警報)"
-                            color2 = 0xff0000  # レッド
+                            color2 = 0xff0000
                         else:
                             title = f"緊急地震速報 最終報(警報)"
-                            color2 = 0xff0000  # レッド
+                            color2 = 0xff0000
                             image = True
 
                     time = util.eew_time()
@@ -119,14 +118,12 @@ class earthquake(commands.Cog):
                     )
                     await eew_channel.send(embed=embed)
 
-                    if data['report_num'] == "1":
-                        image = True
                     if image:
                         await util.eew_image(eew_channel)
 
                 await self.set_cache("cache", data)
 
-    # 地震情報
+    #地震情報
     @tasks.loop(seconds=2)
     async def eew_info(self):
         with open('json/id.json', 'r') as f:
@@ -140,21 +137,29 @@ class earthquake(commands.Cog):
         hypocenter = data['hypocenter']
         if request.status_code == 200:
             if id != response['id']:
+                # 震度に応じた色の設定
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
                     color = 0x6c757d  # グレー
+                    image = "images/shindo1.png"
                 elif max_scale == 2:
                     color = 0x6c757d  # グレー
+                    image = "images/shindo2.png"
                 elif max_scale == 3:
                     color = 0x28a745  # 緑色
+                    image = "images/shindo3.png"
                 elif max_scale == 4:
                     color = 0xffc107  # 黄色
+                    image = "images/shindo4.png"
                 elif max_scale == 5:
                     color = 0xff7f00  # オレンジ色
+                    image = "images/shindo5.png"
                 elif max_scale == 6:
                     color = 0xdc3545  # 赤色
+                    image = "images/shindo6.png"
                 elif max_scale == 7:
                     color = 0x6f42c1  # 紫色
+                    image = "images/shindo7.png"
                 else:
                     color = 0x6c757d  # デフォルト色
 
@@ -162,11 +167,7 @@ class earthquake(commands.Cog):
                 formatted_time = earthquake_time.strftime('%H時%M分')
                 japan_timezone = pytz.timezone('Asia/Tokyo')
                 current_time = datetime.now(japan_timezone).strftime('%Y/%m/%d %H:%M')
-                embed = nextcord.Embed(
-                    title="地震情報",
-                    description=f"{formatted_time}頃、最大震度**{round(data['maxScale'] / 10)}**の地震がありました。\n{isArea}",
-                    color=color
-                )
+                embed = nextcord.Embed(title="地震情報", description=f"{formatted_time}頃、最大震度**{round(data['maxScale'] / 10)}**の地震がありました。\n{isArea}", color=color)
                 embed.add_field(name="震源地", value=hypocenter['name'], inline=False)
                 embed.add_field(name="マグニチュード", value=hypocenter['magnitude'], inline=False)
                 embed.add_field(name="震源の深さ", value=f"{hypocenter['depth']}Km", inline=False)
@@ -180,7 +181,7 @@ class earthquake(commands.Cog):
                     json.dump(id, f, indent=2)
             else:
                 return
-                
+
     @tasks.loop(seconds=2)
     async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
@@ -189,27 +190,29 @@ class earthquake(commands.Cog):
             data = response.json()
             if data:
                 for tsunami in data:
-                    tsunami_id = tsunami.get("id")  # 各津波情報のユニークなIDを取得
-                    if tsunami_id in self.tsunami_sent_ids:
-                        continue  # 既に送信した情報はスキップ
-                    # 必要な情報を抽出してEmbedを作成
+                    tsunami_id = tsunami.get("id")
+                    if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
+                        continue
+
                     embed = nextcord.Embed(
                         title="津波警報",
                         description="津波警報が発表されました。安全な場所に避難してください。",
                         color=0xff0000
                     )
-                    embed.add_field(name="発表時刻", value=tsunami.get("time"))
+                    embed.add_field(name="発表時刻", value=tsunami.get("time", "不明"))
                     for area in tsunami.get("areas", []):
                         embed.add_field(
                             name=area["name"],
                             value=f"到達予想時刻: {area.get('arrival_time', '不明')}\n予想高さ: {area.get('height', '不明')}",
                             inline=False
                         )
-                    # チャンネルに送信
-                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
-                    await tsunami_channel.send(embed=embed)
-                    # 送信済みIDを記録
+
+                    tsunami_channel = self.bot.get_channel(int(config['tsunami_channel']))
+                    if tsunami_channel:
+                        await tsunami_channel.send(embed=embed)
+
                     self.tsunami_sent_ids.add(tsunami_id)
+
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
