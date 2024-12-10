@@ -15,8 +15,8 @@ with open('json/config.json', 'r') as f:
 color = nextcord.Colour(int(config['color'], 16))
 
 # 地図画像とポリゴンデータの準備
-image_path = "/path/to/japan_map.png"  # 地図画像のパス
-map_data_path = "/path/to/japan_shapefile.shp"  # Shapefileデータのパス
+image_path = "./images/tsunami.png"  # 地図画像のパス
+map_data_path = "./images/tsunami.png"  # Shapefileデータのパス
 
 # 地図データを読み込む (例: GeoPandasを使用)
 japan_map = gpd.read_file(map_data_path)
