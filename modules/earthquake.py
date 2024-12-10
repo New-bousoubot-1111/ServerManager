@@ -221,15 +221,15 @@ class earthquake(commands.Cog):
                         color=0xff0000
                     )
                     tsunami_time = parser.parse(tsunami.get("time", "不明"))
-                    formatted_time = tsunami_time.strftime('%H時%M分')
+                    formatted_time = tsunami_time.strftime('%Y/%m/%d %H時%M分')
                     embed.add_field(name="発表時刻", value=formatted_time)
                     for area in tsunami.get("areas", []):
                         first_height = area.get("firstHeight", {})
                         maxHeight = area.get("maxHeight", {})
                         condition = first_height.get("condition", "")
                         description = maxHeight.get("description", "不明")
-                        tsunami_time2 = parser.parse(area.get('arrival_time', '不明'))
-                        formatted_arrival_time = tsunami_time2.strftime('%H時%M分')
+                        tsunami_time2 = parser.parse({area.get('arrival_time', '不明')})
+                        formatted_arrival_time = tsunami_time2.strftime('%Y/%m/%d %H時%M分')
                         embed.add_field(
                             name=area["name"],
                             value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
