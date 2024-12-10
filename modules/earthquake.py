@@ -228,7 +228,7 @@ class earthquake(commands.Cog):
                             inline=False
                         )
 
-                    tsunami_channel = self.bot.get_channel(int(config['tsunami_channel']))
+                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
                         await tsunami_channel.send(embed=embed)
 
