@@ -223,7 +223,7 @@ class earthquake(commands.Cog):
                     for area in tsunami.get("areas", []):
                         embed.add_field(
                             name=area["name"],
-                            value=f"到達予想時刻: {area.get('arrival_time', '不明')}\n予想高さ: {area.get('height', '不明')}",
+                            value=f"{area.get('condition', '不明')}\n予想高さ: {area.get('height', '不明')}",
                             inline=False
                         )
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
