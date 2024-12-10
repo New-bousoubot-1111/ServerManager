@@ -9,3 +9,4 @@ deepl
 asyncpg
 python-dateutil
 pytz
+geopandas
