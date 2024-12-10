@@ -203,7 +203,7 @@ class earthquake(commands.Cog):
             else:
                 return
 
-    @tasks.loop(seconds=2)
+    @tasks.loop(minutes=1)
     async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
         response = requests.get(url)
