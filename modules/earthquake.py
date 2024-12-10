@@ -239,7 +239,7 @@ class earthquake(commands.Cog):
                         if arrival_time != '不明':
                             try:
                                 parsed_time = parser.parse(arrival_time)
-                                formatted_arrival_time = parsed_time.strftime('%Y年%m月%d日 %H時%M分')
+                                formatted_arrival_time = parsed_time.strftime('%H時%M分')
                             except (ValueError, TypeError):
                                 formatted_arrival_time = '不明'
                         else:
