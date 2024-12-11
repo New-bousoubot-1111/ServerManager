@@ -34,10 +34,6 @@ class tsunami(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # 日本語フォントを無効にし、デフォルトフォントを使用
-        rcParams['font.family'] = 'DejaVu Sans'  # 日本語フォントを無効にして、デフォルトのフォントを使用
-        rcParams['axes.unicode_minus'] = False  # マイナス記号が表示される問題を回避
-
     @commands.Cog.listener()
     async def on_ready(self):
         print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
@@ -82,14 +78,6 @@ class tsunami(commands.Cog):
 
                 # 軸を非表示にする
                 ax.set_axis_off()
-
-                # 凡例
-                patches = [
-                    mpatches.Patch(color="purple", label="大津波警報"),
-                    mpatches.Patch(color="red", label="津波警報"),
-                    mpatches.Patch(color="yellow", label="津波注意報")
-                ]
-                plt.legend(handles=patches, loc="upper left", fontsize=15, frameon=False, title="津波情報", title_fontsize=14)
 
                 # 画像保存（高解像度）
                 output_path = "./images/colored_map.png"
