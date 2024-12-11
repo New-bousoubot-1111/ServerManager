@@ -21,9 +21,12 @@ ALERT_COLORS = {
 GEOJSON_PATH = "./images/japan.geojson"  # 日本の地域データ (都道府県や市区町村の境界)
 gdf = gpd.read_file(GEOJSON_PATH)
 
-# デバッグ用に NAM フィールドのユニーク値を出力
-print("Unique values in 'NAM':")
-print(gdf["NAM"].unique())
+# GeoJSON ファイルのカラム名を確認
+print("GeoJSON columns:", gdf.columns)
+
+# 修正したカラム名を使って、地域名を取得
+# 例: カラム名が 'name' の場合、以下のように変更
+GEOJSON_REGION_FIELD = 'name'  # 正しいフィールド名に変更
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -61,13 +64,13 @@ class tsunami(commands.Cog):
                     matched = False
                     for area_name, alert_type in tsunami_alert_areas.items():
                         # 地域名が部分一致する場合に対応
-                        if area_name in row["NAM"]:
+                        if area_name in row[GEOJSON_REGION_FIELD]:
                             matched = True
-                            print(f"Matched: {area_name} -> {row['NAM']}")  # デバッグ用
+                            print(f"Matched: {area_name} -> {row[GEOJSON_REGION_FIELD]}")  # デバッグ用
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                     if not matched:
                         # 未一致地域をデバッグ出力
-                        print(f"Unmatched GeoJSON area: {row['NAM']}")
+                        print(f"Unmatched GeoJSON area: {row[GEOJSON_REGION_FIELD]}")
 
                 # 地域を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
