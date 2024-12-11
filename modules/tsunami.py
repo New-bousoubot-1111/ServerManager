@@ -72,6 +72,10 @@ class tsunami(commands.Cog):
                 # 都道府県を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
 
+                # 軸の数字やラベルを消す
+                ax.set_xticks([])  # x軸のラベルを消す
+                ax.set_yticks([])  # y軸のラベルを消す
+
                 plt.title("津波情報", fontsize=18, color="white")
                 patches = [
                     mpatches.Patch(color="purple", label="大津波警報"),
