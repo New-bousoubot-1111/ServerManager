@@ -34,8 +34,8 @@ class tsunami(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # デフォルトのフォント設定（日本語フォントを無効にする）
-        rcParams['font.family'] = 'DejaVu Sans'  # 日本語フォントを指定せずデフォルトのフォントを使用
+        # 日本語フォントを無効にし、デフォルトフォントを使用
+        rcParams['font.family'] = 'DejaVu Sans'  # 日本語フォントを無効にして、デフォルトのフォントを使用
         rcParams['axes.unicode_minus'] = False  # マイナス記号が表示される問題を回避
 
     @commands.Cog.listener()
