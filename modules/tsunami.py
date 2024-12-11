@@ -25,8 +25,7 @@ gdf = gpd.read_file(GEOJSON_PATH)
 print("GeoJSON columns:", gdf.columns)
 
 # 修正したカラム名を使って、地域名を取得
-# 例: カラム名が 'name' の場合、以下のように変更
-GEOJSON_REGION_FIELD = 'name'  # 正しいフィールド名に変更
+GEOJSON_REGION_FIELD = 'nam'  # 'nam' カラムを使用
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -34,7 +33,7 @@ class tsunami(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
+        print(Fore.BLUE + "|tasks         |" + Fore.RESET)
         print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
@@ -74,6 +73,11 @@ class tsunami(commands.Cog):
 
                 # 地域を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
+
+                # 凡例とタイトルの追加
+                plt.title("津波情報", fontsize=16)
+                plt.annotate("発表日時: 気象庁", (0, 0), xycoords="axes fraction", fontsize=10)
+
                 # 画像を保存
                 output_path = "./images/colored_map.png"
                 plt.savefig(output_path)
