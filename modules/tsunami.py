@@ -89,12 +89,7 @@ class tsunami(commands.Cog):
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     # Embedを作成
-                    embed = Embed(
-                        title="津波警報",
-                        description="津波警報が発表されている地域の地図です。",
-                        color=0xFF0000  # 警告色を赤に設定
-                    )
-                    # 添付ファイルとして画像を追加
+                    embed = nextcord.Embed(title="津波警報",description="津波警報が発表されている地域の地図です",color=0xFF0000)
                     file = File(output_path, filename="津波警報地図.png")
                     embed.set_image(url="attachment://津波警報地図.png")  # 添付ファイル名を指定
                     # メッセージ送信
