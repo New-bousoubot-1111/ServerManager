@@ -1,3 +1,4 @@
+import nextcord
 import json
 import requests
 from colorama import Fore
