@@ -80,16 +80,16 @@ REGION_MAPPING = {
     "宮古島・八重山地方": "Okinawa Ken"
 }
 
-    def save_tsunami_sent_ids(self):
-        with open('tsunami_id.json', 'w') as f:
-            json.dump(list(self.tsunami_sent_ids), f)
+def save_tsunami_sent_ids(self):
+    with open('tsunami_id.json', 'w') as f:
+        json.dump(list(self.tsunami_sent_ids), f)
 
-    def load_tsunami_sent_ids(self):
-        try:
-            with open('tsunami_id.json', 'r') as f:
-                self.tsunami_sent_ids = set(json.load(f))
-        except FileNotFoundError:
-            self.tsunami_sent_ids = set()
+def load_tsunami_sent_ids(self):
+    try:
+        with open('tsunami_id.json', 'r') as f:
+            self.tsunami_sent_ids = set(json.load(f))
+    except FileNotFoundError:
+        self.tsunami_sent_ids = set()
 
 def match_region(area_name, geojson_names):
     # マッピング辞書を使用して変換
