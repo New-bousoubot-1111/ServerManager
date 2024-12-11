@@ -24,20 +24,19 @@ REGION_MAPPING = {
     "高知県": "高知県",
     "鹿児島県東部": "鹿児島県",
     "種子島・屋久島地方": "鹿児島県種子島屋久島",
-    "宮古島・八重山地方": "沖縄県宮古島市八重山",
-    "神奈川県": "Kanagawa Ken"  # 神奈川県を追加
+    "宮古島・八重山地方": "沖縄県宮古島市八重山"
 }
 
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
-# 日本語フォント設定（matplotlibのデフォルトフォントを変更）
-rcParams['font.family'] = 'DejaVu Sans'
-rcParams['axes.unicode_minus'] = False  # マイナス記号が表示されない問題を回避
-
 class tsunami(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        # デフォルトのフォント設定（日本語フォントを無効にする）
+        rcParams['font.family'] = 'DejaVu Sans'  # 日本語フォントを指定せずデフォルトのフォントを使用
+        rcParams['axes.unicode_minus'] = False  # マイナス記号が表示される問題を回避
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -59,7 +58,6 @@ class tsunami(commands.Cog):
                             area_name = area["name"]
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
-
                 # 全ての地域を白に初期化
                 gdf["color"] = "#767676"
                 # 地域ごとに色付け
@@ -67,13 +65,12 @@ class tsunami(commands.Cog):
                     matched = False
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        # より厳密な一致を確認
-                        if area_name == region_name or REGION_MAPPING.get(area_name, "") == region_name:
+                        if area_name in region_name or REGION_MAPPING.get(area_name, "") in region_name:
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
                             break
                     if not matched:
-                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')} | 地域名: {region_name}")
+                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
 
                 # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))  # サイズを大きく
