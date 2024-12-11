@@ -84,7 +84,6 @@ class earthquake(commands.Cog):
         await self.setup_db()
         self.eew_check.start()
         self.eew_info.start()
-        self.check_tsunami.start()
 
     @tasks.loop(seconds=2)
     async def eew_check(self):
@@ -209,51 +208,6 @@ class earthquake(commands.Cog):
                     json.dump(id, f, indent=2)
             else:
                 return
-    
-    #津波情報
-    @tasks.loop(minutes=1)
-    async def check_tsunami(self):
-        url = "https://api.p2pquake.net/v2/jma/tsunami"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            if data:
-                for tsunami in data:
-                    tsunami_id = tsunami.get("id")
-                    if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
-                        continue
-                    embed = nextcord.Embed(
-                        title="津波警報",
-                        description="津波警報が発表されました。安全な場所に避難してください。",
-                        color=0xff0000
-                    )
-                    tsunami_time = parser.parse(tsunami.get("time", "不明"))
-                    formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
-                    embed.add_field(name="発表時刻", value=formatted_time)
-                    for area in tsunami.get("areas", []):
-                        first_height = area.get("firstHeight", {})
-                        maxHeight = area.get("maxHeight", {})
-                        condition = first_height.get("condition", "")
-                        description = maxHeight.get("description", "不明")
-                        arrival_time = first_height.get('arrivalTime', '不明')
-                        if arrival_time != '不明':
-                            try:
-                                parsed_time = parser.parse(arrival_time)
-                                formatted_arrival_time = parsed_time.strftime('%H時%M分')
-                            except (ValueError, TypeError):
-                                formatted_arrival_time = '不明'
-                        else:
-                            formatted_arrival_time = '不明'
-                        embed.add_field(
-                            name=area["name"],
-                            value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
-                            inline=False
-                        )
-                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
-                    if tsunami_channel:
-                        await tsunami_channel.send(embed=embed)
-                    self.tsunami_sent_ids.add(tsunami_id)
-                    self.save_tsunami_sent_ids()
 
 def setup(bot):
     return bot.add_cog(earthquake(bot))
