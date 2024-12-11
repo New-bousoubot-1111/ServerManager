@@ -8,7 +8,7 @@ from nextcord import File
 from matplotlib import rcParams
 
 # 日本語フォント設定
-rcParams['font.family'] = 'Noto Sans CJK JP'
+rcParams['font.family'] = 'IPAexGothic'  # 別の日本語フォントを指定
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -30,9 +30,14 @@ def normalize_region_name(name):
 REGION_MAPPING = {
     "伊豆諸島": "東京都伊豆諸島",
     "小笠原諸島": "東京都小笠原村",
-    "種子島・屋久島地方": "鹿児島県種子島屋久島",
-    "沖縄本島地方": "沖縄県",
-    "宮古島・八重山地方": "沖縄県宮古島市"
+    "宮崎県": "宮崎県",
+    "愛媛県宇和海": "愛媛県宇和島",
+    "高知県": "高知県",
+    "大分県豊後水道": "大分県",
+    "鹿児島県東部": "鹿児島県",
+    "種子島・屋久島": "鹿児島県種子島屋久島",
+    "沖縄本島": "沖縄県",
+    "宮古島・八重山": "沖縄県宮古島市"
 }
 
 # GeoJSONの読み込み
