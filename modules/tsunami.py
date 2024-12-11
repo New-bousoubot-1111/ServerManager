@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
 from nextcord import File
-from matplotlib import font_manager
+from matplotlib import rcParams
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -30,10 +30,9 @@ REGION_MAPPING = {
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
-# 日本語フォントの設定（Matplotlibで日本語を表示できるようにする）
-font_path = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"  # フォントパスの確認
-font_prop = font_manager.FontProperties(fname=font_path)
-plt.rcParams['font.family'] = font_prop.get_name()
+# 日本語フォント設定（デフォルトで日本語が表示できるようにする）
+rcParams['font.family'] = 'Noto Sans CJK JP'  # Notoフォントを使用
+rcParams['axes.unicode_minus'] = False  # マイナス記号が表示されない問題を回避
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -92,7 +91,7 @@ class tsunami(commands.Cog):
                     mpatches.Patch(color="red", label="津波警報"),
                     mpatches.Patch(color="yellow", label="津波注意報")
                 ]
-                plt.legend(handles=patches, loc="upper left", fontsize=15, frameon=False, title="津波情報", title_fontsize=16)
+                plt.legend(handles=patches, loc="upper left", fontsize=15, frameon=False, title="津波情報", title_fontsize=14)
 
                 # 画像保存（高解像度）
                 output_path = "./images/colored_map.png"
