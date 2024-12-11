@@ -65,18 +65,22 @@ class tsunami(commands.Cog):
                             matched = True
                             break
                     if not matched:
-                        print(f"未一致地域: {area_name} | GeoJSON内候補: {row[GEOJSON_REGION_FIELD]} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
+                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
 
                 # 地図を描画
-                fig, ax = plt.subplots(figsize=(10, 12))
-                fig.patch.set_facecolor('#2a2a2a')
-                ax.set_facecolor("#2a2a2a")  # 背景色を薄い灰色に設定
-                # 地図を描画
-                gdf.plot(ax=ax, color=gdf["color"], edgecolor="#d3d3d3")
+                fig, ax = plt.subplots(figsize=(15, 18))  # サイズを大きく
+                fig.patch.set_facecolor('#2e2e2e')  # 全体の背景色
+                ax.set_facecolor("#2e2e2e")  # 地図の背景色を薄い灰色に設定
+
+                # 地図描画
+                gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+
                 # 軸を非表示にする
                 ax.set_axis_off()
+
                 # タイトル
-                plt.title("津波情報", fontsize=18, color="black")
+                plt.title("津波情報", fontsize=18, color="white")
+
                 # 凡例
                 patches = [
                     mpatches.Patch(color="purple", label="大津波警報"),
@@ -85,9 +89,9 @@ class tsunami(commands.Cog):
                 ]
                 plt.legend(handles=patches, loc="upper left", fontsize=12, frameon=False, title="津波情報", title_fontsize=14)
 
-                # 画像保存
+                # 画像保存（高解像度）
                 output_path = "./images/colored_map.png"
-                plt.savefig(output_path, bbox_inches="tight", transparent=True, facecolor=ax.figure.get_facecolor())
+                plt.savefig(output_path, bbox_inches="tight", transparent=True, facecolor=ax.figure.get_facecolor(), dpi=300)
 
                 # Discordに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
