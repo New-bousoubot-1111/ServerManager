@@ -65,12 +65,14 @@ class tsunami(commands.Cog):
                     mapped_region = REGION_MAPPING.get(area_name, area_name)
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        if mapped_region in region_name:  # 部分一致でマッチさせる
+                        # 部分一致でマッチさせる
+                        if mapped_region in region_name:  
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
                             break
                     if not matched:
-                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
+                        # ここでログに未一致の地域名を出力
+                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')} | 地域名: {region_name}")
 
                 # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))  # サイズを大きく
