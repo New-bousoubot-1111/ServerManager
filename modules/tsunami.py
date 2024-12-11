@@ -76,7 +76,7 @@ class tsunami(commands.Cog):
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
                 ax.set_xlim(122, 153)  # 経度の範囲 (日本列島全体に合わせる)
-                ax.set_ylim(20, 46)    # 緯度の範囲 (日本列島全体に合わせる)
+                ax.set_ylim(24, 46)    # 緯度の範囲 (日本列島全体に合わせる)
                 # 軸を非表示にする
                 ax.set_axis_off()
 
