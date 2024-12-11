@@ -5,28 +5,38 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
 from nextcord import File
-from colorama import Fore
+from matplotlib import rcParams
+
+# 日本語フォント設定
+rcParams['font.family'] = 'Noto Sans CJK JP'
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
-# 津波警報の種類に対応する色
-ALERT_COLORS = {
-    "大津波警報": "purple",
-    "津波警報": "red",
-    "津波注意報": "yellow"
+# 色設定
+ALERT_COLORS = {"大津波警報": "purple", "津波警報": "red", "津波注意報": "yellow"}
+GEOJSON_PATH = "./images/japan.geojson"
+GEOJSON_REGION_FIELD = 'nam'
+
+# 地域名正規化関数
+def normalize_region_name(name):
+    """
+    地域名を正規化する
+    """
+    return name.replace("地方", "").replace("沿岸", "").replace(" ", "").strip()
+
+# 地域マッピング（手動補正が必要な場合）
+REGION_MAPPING = {
+    "伊豆諸島": "東京都伊豆諸島",
+    "小笠原諸島": "東京都小笠原村",
+    "種子島・屋久島地方": "鹿児島県種子島屋久島",
+    "沖縄本島地方": "沖縄県",
+    "宮古島・八重山地方": "沖縄県宮古島市"
 }
 
-# GeoJSON データの読み込み
-GEOJSON_PATH = "./images/japan.geojson"  # 日本の地域データ (都道府県や市区町村の境界)
+# GeoJSONの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
-
-# GeoJSON ファイルのカラム名を確認
-print("GeoJSON columns:", gdf.columns)
-
-# 修正したカラム名を使って、地域名を取得
-GEOJSON_REGION_FIELD = 'nam'  # 'nam' カラムを使用
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -34,49 +44,49 @@ class tsunami(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
-        print(Fore.BLUE + "|--------------|" + Fore.RESET)
+        print("Tsunami module is ready")
         self.check_tsunami.start()
 
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
-        url = "https://api.p2pquake.net/v2/jma/tsunami"  # 津波 API
+        url = "https://api.p2pquake.net/v2/jma/tsunami"
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
             if data:
-                tsunami_alert_areas = {}  # 地域ごとの警報種類を保存
-
-                # API データ処理
+                tsunami_alert_areas = {}
                 for tsunami in data:
-                    if not tsunami["cancelled"]:  # 発表中の警報のみ処理
+                    if not tsunami["cancelled"]:
                         for area in tsunami.get("areas", []):
-                            area_name = area["name"]
+                            area_name = normalize_region_name(area["name"])
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
 
-                # 地図の描画準備
-                gdf["color"] = "white"  # デフォルトの色
-
-                # 地域を描画する際に部分一致でチェック
-                for index, row in gdf.iterrows():
-                    for area_name, alert_type in tsunami_alert_areas.items():
-                        # 地域名が部分一致する場合に対応
-                        if area_name in row[GEOJSON_REGION_FIELD]:
+                # 地域の色設定
+                gdf["color"] = "white"
+                for area_name, alert_type in tsunami_alert_areas.items():
+                    matched = False
+                    normalized_area_name = normalize_region_name(area_name)
+                    for index, row in gdf.iterrows():
+                        region_name = normalize_region_name(row[GEOJSON_REGION_FIELD])
+                        # 一致またはマッピングで照合
+                        if (
+                            normalized_area_name in region_name
+                            or region_name in normalized_area_name
+                            or REGION_MAPPING.get(area_name, "") == row[GEOJSON_REGION_FIELD]
+                        ):
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
+                            matched = True
                             break
-
-                # 未一致地域をデバッグ出力
-                for area_name in tsunami_alert_areas.keys():
-                    if not any(area_name in region for region in gdf[GEOJSON_REGION_FIELD]):
+                    if not matched:
                         print(f"未一致地域: {area_name}")
 
                 # 地図描画
                 fig, ax = plt.subplots(figsize=(10, 12))
-                ax.set_facecolor("black")  # 背景を黒に設定
-                gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")  # 色と境界線を設定
+                ax.set_facecolor("black")
+                gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
 
-                # タイトルと凡例の追加
+                # タイトルと凡例
                 plt.title("津波情報", fontsize=18, color="white")
                 patches = [
                     mpatches.Patch(color="purple", label="大津波警報"),
@@ -85,7 +95,7 @@ class tsunami(commands.Cog):
                 ]
                 plt.legend(handles=patches, loc="upper left", fontsize=12, frameon=False, title="津波情報", title_fontsize=14)
 
-                # 発表日時を追加
+                # 注釈
                 plt.annotate(
                     "1月1日 16時22分 気象庁発表",
                     xy=(0.5, 1.05),
@@ -95,11 +105,9 @@ class tsunami(commands.Cog):
                     color="white"
                 )
 
-                # 画像を保存
+                # 画像保存と送信
                 output_path = "./images/colored_map.png"
                 plt.savefig(output_path, bbox_inches="tight", facecolor=ax.figure.get_facecolor())
-
-                # Discord チャンネルに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     await tsunami_channel.send(
