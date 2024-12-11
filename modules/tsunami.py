@@ -4,7 +4,6 @@ from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-import re
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
@@ -20,19 +19,12 @@ GEOJSON_REGION_FIELD = 'nam'
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
-
-def preprocess_area_name(area_name):
-    # 地名を正規化（例: 「沿岸」「地方」を削除）
-    area_name = re.sub(r"(沿岸|地方)", "", area_name)
-    return area_name
-# 修正例: 正規化を組み合わせる
+# 地域名を部分一致させる関数
 def match_region(area_name, geojson_names):
-    area_name = preprocess_area_name(area_name)  # 正規化
     best_match, score = process.extractOne(area_name, geojson_names)
-    if score >= 70:
+    if score >= 80:  # 類似度の閾値を設定（調整可能）
         return best_match
     return None
-
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
