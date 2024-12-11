@@ -99,7 +99,7 @@ class tsunami(commands.Cog):
                     embed.set_image(url="attachment://津波警報地図.png")  # 添付ファイル名を指定
 
                     # メッセージ送信
-                    await tsunami_channel.send(embed=embed)
+                    await tsunami_channel.send(embed=embed, file=file)
             else:
                 print("津波警報データがありません。")
         else:
