@@ -71,7 +71,7 @@ class tsunami(commands.Cog):
 
                 # 海の部分を薄い灰色に設定（都道府県の境界線は変更しません）
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")  # 都道府県を描画
-                ax.set_facecolor('#d3d3d3')  # 海の部分を薄い灰色に設定
+                ax.set_facecolor('#2e2e2e')  # 海の部分を薄い灰色に設定
 
                 plt.title("津波情報", fontsize=18, color="white")
                 patches = [
