@@ -67,7 +67,15 @@ REGION_MAPPING = {
     "新潟県": "Niigata Ken",
     "高知県": "Kochi Ken",
     "宮崎県": "Miyazaki Ken",
-    "神奈川県": "Kanagawa Ken"
+    "神奈川県": "Kanagawa Ken",
+    "伊豆諸島": "Tokyo To",  # 伊豆諸島を東京とマッピング
+    "小笠原諸島": "Tokyo To",  # 小笠原諸島を東京とマッピング
+    "愛媛県宇和海沿岸": "Ehime Ken",
+    "大分県豊後水道沿岸": "Oita Ken",
+    "鹿児島県東部": "Kagoshima Ken",
+    "種子島・屋久島地方": "Kagoshima Ken",
+    "沖縄本島地方": "Okinawa Ken",
+    "宮古島・八重山地方": "Okinawa Ken"
 }
 
 def match_region(area_name, geojson_names):
