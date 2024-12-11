@@ -4,7 +4,7 @@ from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-from fuzzywuzzy import process
+from fuzzywuzzy import fuzz
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 
@@ -19,10 +19,16 @@ GEOJSON_REGION_FIELD = 'nam'
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
-# 地域名を部分一致させる関数
+# 部分一致の設定
 def match_region(area_name, geojson_names):
-    best_match, score = process.extractOne(area_name, geojson_names)
-    if score >= 40:  # 類似度の閾値を設定（調整可能）
+    best_match = None
+    highest_score = 0
+    for geo_name in geojson_names:
+        score = fuzz.partial_ratio(area_name, geo_name)  # 部分一致を計算
+        if score > highest_score:
+            highest_score = score
+            best_match = geo_name
+    if highest_score >= 70:  # 閾値を設定（調整可能）
         return best_match
     return None
 
