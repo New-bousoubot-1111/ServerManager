@@ -11,4 +11,3 @@ python-dateutil
 pytz
 matplotlib
 geopandas
-fuzzywuzzy
