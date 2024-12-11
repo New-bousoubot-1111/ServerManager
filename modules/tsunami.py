@@ -6,10 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
 from nextcord import File
-from matplotlib import rcParams
-
-# 日本語フォントの設定
-rcParams['font.family'] = 'Noto Sans CJK JP'
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -62,7 +58,6 @@ class tsunami(commands.Cog):
                     matched = False
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        # 地域名が完全に一致するか、マッピングで一致するか確認
                         if area_name in region_name or REGION_MAPPING.get(area_name, "") in region_name:
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
@@ -72,16 +67,17 @@ class tsunami(commands.Cog):
 
                 # 背景色を薄い灰色に設定
                 fig, ax = plt.subplots(figsize=(10, 12))
-                ax.set_facecolor("#2e2e2e")  # 日本の周りを薄い灰色に設定
+                fig.patch.set_facecolor('#d3d3d3')  # 全体の背景を薄い灰色に設定
+                ax.set_facecolor('#d3d3d3')  # 地図部分の背景も薄い灰色に設定
 
-                # 都道府県を描画
+                # 地図の描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
 
                 # 軸を非表示にする
                 ax.set_axis_off()
 
                 # タイトル設定
-                plt.title("津波情報", fontsize=18, color="white")
+                plt.title("津波情報", fontsize=18, color="black")  # タイトルの文字色を黒に
 
                 # 凡例設定
                 patches = [
@@ -98,11 +94,12 @@ class tsunami(commands.Cog):
                     xycoords="axes fraction",
                     fontsize=10,
                     ha="center",
-                    color="white"
+                    color="black"
                 )
 
+                # 保存時に背景色を設定
                 output_path = "./images/colored_map.png"
-                plt.savefig(output_path, bbox_inches="tight", transparent=True, facecolor=ax.figure.get_facecolor())
+                plt.savefig(output_path, bbox_inches="tight", facecolor=fig.get_facecolor())
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     await tsunami_channel.send(
