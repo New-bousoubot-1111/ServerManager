@@ -7,6 +7,7 @@ from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
+from datetime import datetime
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -96,6 +97,7 @@ class tsunami(commands.Cog):
         if response.status_code == 200:
             data = response.json()
             if data:
+                # 最新の津波警報をすべて処理
                 tsunami_alert_areas = {}
                 for tsunami in data:
                     if not tsunami["cancelled"]:
