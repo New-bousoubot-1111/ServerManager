@@ -11,7 +11,7 @@ from matplotlib import rcParams
 from matplotlib import font_manager as fm
 
 # フォントファイルのパスを指定
-FONT_PATH = "./fonts/NotoSansCJKjp-Regular.otf"
+FONT_PATH = "./json/NotoSansJP-Black.ttf"
 if not os.path.exists(FONT_PATH):
     raise FileNotFoundError(f"フォントファイルが見つかりません: {FONT_PATH}")
 font_prop = fm.FontProperties(fname=FONT_PATH)
