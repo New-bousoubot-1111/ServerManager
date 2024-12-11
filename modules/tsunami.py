@@ -73,6 +73,12 @@ class tsunami(commands.Cog):
                     else:
                         print(f"地域名が一致しませんでした: {area_name}")
 
+                for area_name in tsunami_alert_areas.keys():
+                    print(f"地域名: {area_name}")
+                    for geo_name in geojson_names:
+                        score = fuzz.partial_ratio(area_name, geo_name)  # 部分一致スコア
+                        print(f"  GeoJSON名: {geo_name}, スコア: {score}")
+
                 # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))
                 fig.patch.set_facecolor('#2a2a2a')  # 地図全体の背景色を薄い灰色に設定
