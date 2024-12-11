@@ -117,7 +117,8 @@ class tsunami(commands.Cog):
         print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
-    async def tsunami_info(tsunami_channel):
+    @tasks.loop(minutes=1)
+    async def check_tsunami(self):
         url = "https://api.p2pquake.net/v2/jma/tsunami"
         response = requests.get(url)
         if response.status_code == 200:
@@ -158,6 +159,8 @@ class tsunami(commands.Cog):
                     output_path = "./images/colored_map.png"
                     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
 
+                    # Discordに送信
+                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
                         embed = Embed(
                             title="津波警報",
