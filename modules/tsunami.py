@@ -14,18 +14,19 @@ with open('json/config.json', 'r') as f:
 ALERT_COLORS = {"大津波警報": "purple", "津波警報": "red", "津波注意報": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"
 GEOJSON_REGION_FIELD = 'nam'
+
+# APIの地域名とGeoJSONの地域名を対応付けるマッピング
 REGION_MAPPING = {
     "伊豆諸島": "東京都伊豆諸島",
     "小笠原諸島": "東京都小笠原村",
     "宮崎県": "宮崎県",
-    "愛媛県宇和海沿岸": "愛媛県",
     "高知県": "高知県",
-    "大分県豊後水道沿岸": "大分県",
     "鹿児島県東部": "鹿児島県",
     "種子島・屋久島地方": "鹿児島県種子島屋久島",
-    "沖縄本島地方": "沖縄県",
-    "宮古島・八重山地方": "沖縄県宮古島市"
+    "宮古島・八重山地方": "沖縄県宮古島市八重山"
 }
+
+# GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
 class tsunami(commands.Cog):
@@ -53,7 +54,10 @@ class tsunami(commands.Cog):
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
 
+                # 全ての地域を白に初期化
                 gdf["color"] = "white"
+
+                # 地域ごとに色付け
                 for area_name, alert_type in tsunami_alert_areas.items():
                     matched = False
                     for index, row in gdf.iterrows():
@@ -63,23 +67,22 @@ class tsunami(commands.Cog):
                             matched = True
                             break
                     if not matched:
-                        print(f"未一致地域: {area_name}")
+                        print(f"未一致地域: {area_name} | GeoJSON内候補: {row[GEOJSON_REGION_FIELD]} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
 
-                # 背景色を薄い灰色に設定
+                # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))
-                fig.patch.set_facecolor('#2e2e2e')  # 全体の背景を薄い灰色に設定
-                ax.set_facecolor('#2e2e2e')  # 地図部分の背景も薄い灰色に設定
+                ax.set_facecolor("#2e2e2e")  # 背景色を薄い灰色に設定
 
-                # 地図の描画
+                # 地図を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
 
                 # 軸を非表示にする
                 ax.set_axis_off()
 
-                # タイトル設定
-                plt.title("津波情報", fontsize=18, color="black")  # タイトルの文字色を黒に
+                # タイトル
+                plt.title("津波情報", fontsize=18, color="black")
 
-                # 凡例設定
+                # 凡例
                 patches = [
                     mpatches.Patch(color="purple", label="大津波警報"),
                     mpatches.Patch(color="red", label="津波警報"),
@@ -87,19 +90,11 @@ class tsunami(commands.Cog):
                 ]
                 plt.legend(handles=patches, loc="upper left", fontsize=12, frameon=False, title="津波情報", title_fontsize=14)
 
-                # 注釈設定
-                plt.annotate(
-                    "1月1日 16時22分 気象庁発表",
-                    xy=(0.5, 1.05),
-                    xycoords="axes fraction",
-                    fontsize=10,
-                    ha="center",
-                    color="black"
-                )
-
-                # 保存時に背景色を設定
+                # 画像保存
                 output_path = "./images/colored_map.png"
-                plt.savefig(output_path, bbox_inches="tight", facecolor=fig.get_facecolor())
+                plt.savefig(output_path, bbox_inches="tight", transparent=True, facecolor=ax.figure.get_facecolor())
+
+                # Discordに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     await tsunami_channel.send(
