@@ -65,18 +65,20 @@ class tsunami(commands.Cog):
                     if not matched:
                         print(f"未一致地域: {area_name}")
 
-                # 日本の周りの背景色を薄い灰色に設定
+                # 背景色を薄い灰色に設定
                 fig, ax = plt.subplots(figsize=(10, 12))
-                ax.set_facecolor('#d3d3d3')  # 海の部分を薄い灰色に設定
+                ax.set_facecolor("lightgray")  # 日本の周りを薄い灰色に設定
 
                 # 都道府県を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
 
-                # 軸の数字やラベルを消す
-                ax.set_xticks([])  # x軸のラベルを消す
-                ax.set_yticks([])  # y軸のラベルを消す
+                # 軸を非表示にする
+                ax.set_axis_off()
 
+                # タイトル設定
                 plt.title("津波情報", fontsize=18, color="white")
+
+                # 凡例設定
                 patches = [
                     mpatches.Patch(color="purple", label="大津波警報"),
                     mpatches.Patch(color="red", label="津波警報"),
@@ -84,6 +86,7 @@ class tsunami(commands.Cog):
                 ]
                 plt.legend(handles=patches, loc="upper left", fontsize=12, frameon=False, title="津波情報", title_fontsize=14)
 
+                # 注釈設定
                 plt.annotate(
                     "1月1日 16時22分 気象庁発表",
                     xy=(0.5, 1.05),
