@@ -279,8 +279,6 @@ async def tsunami_info(eew_channel):
 
                 output_path = "./images/colored_map.png"
                 plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-
-                tsunami_channel = eew_channel
                 if tsunami_channel:
                     embed = Embed(
                         title="津波警報",
