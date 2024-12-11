@@ -99,8 +99,9 @@ class tsunami(commands.Cog):
                         color=0xFF0000  # 赤色
                     )
                     file = File(output_path, filename="津波警報地図.png")
-                    embed.set_image(url="attachment://colored_map.png")
-                    await tsunami_channel.send(embed=embed, file=File)
+                    embed.set_image(url="attachment://津波警報地図.png")  # 添付ファイル名を指定
+                    # メッセージ送信
+                    await tsunami_channel.send(embed=embed, file=file)
             else:
                 print("津波警報データがありません。")
         else:
