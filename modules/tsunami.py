@@ -52,10 +52,21 @@ class tsunami(commands.Cog):
                 fig, ax = plt.subplots(figsize=(10, 12))
                 gdf["color"] = "white"  # デフォルトの色
 
+                # 一致確認用のログ
+                unmatched_areas = []
+
                 for index, row in gdf.iterrows():
+                    matched = False
                     for area_name, alert_type in tsunami_alert_areas.items():
-                        if area_name in row["NAM"]:
+                        if area_name in row["NAM"]:  # 地域名が一致
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
+                            matched = True
+                    if not matched:
+                        unmatched_areas.append(row["NAM"])
+
+                # 未一致地域を出力 (デバッグ用)
+                if unmatched_areas:
+                    print(f"一致しなかった地域: {unmatched_areas}")
 
                 # 地域を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
@@ -67,6 +78,7 @@ class tsunami(commands.Cog):
                 # 画像を保存
                 output_path = "./images/colored_map.png"
                 plt.savefig(output_path)
+                plt.show()  # ローカルで地図を確認 (必要に応じて)
 
                 # Discord チャンネルに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
