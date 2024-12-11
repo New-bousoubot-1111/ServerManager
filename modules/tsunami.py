@@ -3,7 +3,6 @@ import requests
 from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
@@ -13,7 +12,13 @@ from datetime import datetime
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
-ALERT_COLORS = {"大津波警報": "purple", "津波警報": "red", "津波注意報": "yellow"}
+# 警報ごとの色
+ALERT_COLORS = {
+    "大津波警報": "purple", 
+    "津波警報": "red", 
+    "津波注意報": "yellow"
+}
+
 GEOJSON_PATH = "./images/japan.geojson"
 GEOJSON_REGION_FIELD = 'nam'
 
@@ -103,8 +108,9 @@ class tsunami(commands.Cog):
                     if not tsunami["cancelled"]:
                         for area in tsunami.get("areas", []):
                             area_name = area["name"]
-                            alert_type = area.get("kind", "津波注意報")
+                            alert_type = area.get("grade", "津波注意報")  # `grade` フィールドを使用
                             tsunami_alert_areas[area_name] = alert_type
+                            print(f"地域: {area_name}, 警報レベル: {alert_type}")  # デバッグ用の出力
 
                 # GeoJSONの地域名リストを取得
                 geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
@@ -116,6 +122,7 @@ class tsunami(commands.Cog):
                 for area_name, alert_type in tsunami_alert_areas.items():
                     matched_region = match_region(area_name, geojson_names)
                     if matched_region:
+                        # `ALERT_COLORS` で対応する色を設定
                         gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
                     else:
                         print(f"地域名が一致しませんでした: {area_name}")
