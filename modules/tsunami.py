@@ -12,7 +12,7 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"大津波警報": "purple", "津波警報": "red", "津波注意報": "yellow"}
-GEOJSON_PATH = "./images/colored_map.png"
+GEOJSON_PATH = "./images/japan.geojson"
 GEOJSON_REGION_FIELD = 'nam'
 REGION_MAPPING = {
     "伊豆諸島": "東京都伊豆諸島",
