@@ -90,7 +90,7 @@ class tsunami(commands.Cog):
                 )
 
                 output_path = "./images/colored_map.png"
-                plt.savefig(output_path, bbox_inches="tight", facecolor=ax.figure.get_facecolor())
+                plt.savefig(output_path, bbox_inches="tight", transparent=True, facecolor=ax.figure.get_facecolor())
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     await tsunami_channel.send(
