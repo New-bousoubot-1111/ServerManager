@@ -10,14 +10,20 @@ from colorama import Fore
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
+# 津波警報の種類に対応する色
 ALERT_COLORS = {
     "大津波警報": "purple",
     "津波警報": "red",
     "津波注意報": "yellow"
 }
 
-GEOJSON_PATH = "./images/japan.geojson"
+# GeoJSON データの読み込み
+GEOJSON_PATH = "./images/japan.geojson"  # 日本の地域データ (都道府県や市区町村の境界)
 gdf = gpd.read_file(GEOJSON_PATH)
+
+# デバッグ用に NAM フィールドのユニーク値を出力
+print("Unique values in 'NAM':")
+print(gdf["NAM"].unique())
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -26,59 +32,65 @@ class tsunami(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(Fore.BLUE + "|tasks         |" + Fore.RESET)
+        print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
-        url = "https://api.p2pquake.net/v2/jma/tsunami"
+        url = "https://api.p2pquake.net/v2/jma/tsunami"  # 津波 API
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
             if data:
-                tsunami_alert_areas = {}
+                tsunami_alert_areas = {}  # 地域ごとの警報種類を保存
+
+                # API データ処理
                 for tsunami in data:
-                    if not tsunami["cancelled"]:
+                    if not tsunami["cancelled"]:  # 発表中の警報のみ処理
                         for area in tsunami.get("areas", []):
-                            print(f"Processing area: {area['name']}")  # デバッグ用
+                            area_name = area["name"]
                             alert_type = area.get("kind", "津波注意報")
-                            tsunami_alert_areas[area["name"]] = alert_type
+                            tsunami_alert_areas[area_name] = alert_type
 
+                # 地図の描画
                 fig, ax = plt.subplots(figsize=(10, 12))
-                gdf["color"] = "white"
+                gdf["color"] = "white"  # デフォルトの色
 
-                unmatched_areas = []
+                # 地域を描画する際に部分一致でチェック
                 for index, row in gdf.iterrows():
                     matched = False
                     for area_name, alert_type in tsunami_alert_areas.items():
+                        # 地域名が部分一致する場合に対応
                         if area_name in row["NAM"]:
-                            gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
+                            print(f"Matched: {area_name} -> {row['NAM']}")  # デバッグ用
+                            gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                     if not matched:
-                        unmatched_areas.append(row["NAM"])
+                        # 未一致地域をデバッグ出力
+                        print(f"Unmatched GeoJSON area: {row['NAM']}")
 
-                if unmatched_areas:
-                    print(f"Unmatched areas: {unmatched_areas}")
-
+                # 地域を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
-                plt.title("津波情報", fontsize=16)
 
+                # 凡例とタイトルの追加
+                plt.title("津波情報", fontsize=16)
+                plt.annotate("発表日時: 気象庁", (0, 0), xycoords="axes fraction", fontsize=10)
+
+                # 画像を保存
                 output_path = "./images/colored_map.png"
                 plt.savefig(output_path)
-                print(f"Image saved at {output_path}")
-                plt.show()
 
+                # Discord チャンネルに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     await tsunami_channel.send(
                         "津波警報が発表されている地域の地図です。",
                         file=File(output_path)
                     )
-                else:
-                    print("Channel not found or bot lacks permissions.")
             else:
-                print("No tsunami alert data available.")
+                print("津波警報データがありません。")
         else:
-            print(f"Failed to fetch tsunami data: {response.status_code}")
+            print("津波データの取得に失敗しました。")
 
 def setup(bot):
     bot.add_cog(tsunami(bot))
