@@ -2,11 +2,12 @@ import json
 import requests
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
 from nextcord import File
 from colorama import Fore
 
-# configファイルの読み込み
+# 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
@@ -33,7 +34,7 @@ class tsunami(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "|tasks         |" + Fore.RESET)
+        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
         print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
@@ -54,33 +55,49 @@ class tsunami(commands.Cog):
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
 
-                # 地図の描画
-                fig, ax = plt.subplots(figsize=(10, 12))
+                # 地図の描画準備
                 gdf["color"] = "white"  # デフォルトの色
 
                 # 地域を描画する際に部分一致でチェック
                 for index, row in gdf.iterrows():
-                    matched = False
                     for area_name, alert_type in tsunami_alert_areas.items():
                         # 地域名が部分一致する場合に対応
                         if area_name in row[GEOJSON_REGION_FIELD]:
-                            matched = True
-                            print(f"Matched: {area_name} -> {row[GEOJSON_REGION_FIELD]}")  # デバッグ用
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
-                    if not matched:
-                        # 未一致地域をデバッグ出力
-                        print(f"Unmatched GeoJSON area: {row[GEOJSON_REGION_FIELD]}")
+                            break
 
-                # 地域を描画
-                gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
+                # 未一致地域をデバッグ出力
+                for area_name in tsunami_alert_areas.keys():
+                    if not any(area_name in region for region in gdf[GEOJSON_REGION_FIELD]):
+                        print(f"未一致地域: {area_name}")
 
-                # 凡例とタイトルの追加
-                plt.title("津波情報", fontsize=16)
-                plt.annotate("発表日時: 気象庁", (0, 0), xycoords="axes fraction", fontsize=10)
+                # 地図描画
+                fig, ax = plt.subplots(figsize=(10, 12))
+                ax.set_facecolor("black")  # 背景を黒に設定
+                gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")  # 色と境界線を設定
+
+                # タイトルと凡例の追加
+                plt.title("津波情報", fontsize=18, color="white")
+                patches = [
+                    mpatches.Patch(color="purple", label="大津波警報"),
+                    mpatches.Patch(color="red", label="津波警報"),
+                    mpatches.Patch(color="yellow", label="津波注意報")
+                ]
+                plt.legend(handles=patches, loc="upper left", fontsize=12, frameon=False, title="津波情報", title_fontsize=14)
+
+                # 発表日時を追加
+                plt.annotate(
+                    "1月1日 16時22分 気象庁発表",
+                    xy=(0.5, 1.05),
+                    xycoords="axes fraction",
+                    fontsize=10,
+                    ha="center",
+                    color="white"
+                )
 
                 # 画像を保存
                 output_path = "./images/colored_map.png"
-                plt.savefig(output_path)
+                plt.savefig(output_path, bbox_inches="tight", facecolor=ax.figure.get_facecolor())
 
                 # Discord チャンネルに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
