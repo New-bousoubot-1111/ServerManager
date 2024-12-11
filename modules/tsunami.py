@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
 from nextcord import File
+from matplotlib import font_manager
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -28,6 +29,11 @@ REGION_MAPPING = {
 
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
+
+# 日本語フォントの設定（Matplotlibで日本語を表示できるようにする）
+font_path = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"  # フォントパスの確認
+font_prop = font_manager.FontProperties(fname=font_path)
+plt.rcParams['font.family'] = font_prop.get_name()
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -53,6 +59,7 @@ class tsunami(commands.Cog):
                             area_name = area["name"]
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
+
                 # 全ての地域を白に初期化
                 gdf["color"] = "#767676"
                 # 地域ごとに色付け
@@ -60,12 +67,13 @@ class tsunami(commands.Cog):
                     matched = False
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        if area_name in region_name or REGION_MAPPING.get(area_name, "") in region_name:
+                        # より厳密な一致を確認
+                        if area_name == region_name or REGION_MAPPING.get(area_name, "") == region_name:
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
                             break
                     if not matched:
-                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
+                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')} | 地域名: {region_name}")
 
                 # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))  # サイズを大きく
@@ -84,7 +92,7 @@ class tsunami(commands.Cog):
                     mpatches.Patch(color="red", label="津波警報"),
                     mpatches.Patch(color="yellow", label="津波注意報")
                 ]
-                plt.legend(handles=patches, loc="upper left", fontsize=15, frameon=False, title="津波情報", title_fontsize=14)
+                plt.legend(handles=patches, loc="upper left", fontsize=15, frameon=False, title="津波情報", title_fontsize=16)
 
                 # 画像保存（高解像度）
                 output_path = "./images/colored_map.png"
