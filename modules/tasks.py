@@ -18,7 +18,6 @@ class tasks(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(Fore.BLUE + "|tasks         |" + Fore.RESET)
-        print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.news_info.start()
 
     # ニュース速報
