@@ -19,6 +19,8 @@ GEOJSON_REGION_FIELD = 'nam'
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
+print(gdf[GEOJSON_REGION_FIELD].tolist())
+
 # 地域名を部分一致させる関数
 def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
