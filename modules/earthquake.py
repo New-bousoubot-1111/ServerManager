@@ -15,9 +15,6 @@ import pytz
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
-with open('json/tsunami.json', 'r') as f:
-    tsunami = json.load(f)
-
 color = nextcord.Colour(int(config['color'], 16))
 
 class earthquake(commands.Cog):
@@ -255,8 +252,6 @@ class earthquake(commands.Cog):
                     tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
                         await tsunami_channel.send(embed=embed)
-                    if image:
-                        await util.tsunami_info(eew_channel)
                     self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
 
