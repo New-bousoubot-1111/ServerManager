@@ -10,7 +10,6 @@ import os
 from dateutil import parser
 from datetime import datetime
 import pytz
-import tsunami
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
