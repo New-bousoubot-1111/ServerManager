@@ -74,7 +74,7 @@ class tsunami(commands.Cog):
 
                 # 地図を保存
                 output_path = "./images/colored_map.png"
-                plt.savefig(output_path, bbox_inches="tight", transparent=True, dpi=300)
+                plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
 
                 # Discordに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
