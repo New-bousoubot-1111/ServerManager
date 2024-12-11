@@ -67,8 +67,8 @@ class tsunami(commands.Cog):
 
                 # 背景色を薄い灰色に設定
                 fig, ax = plt.subplots(figsize=(10, 12))
-                fig.patch.set_facecolor('#d3d3d3')  # 全体の背景を薄い灰色に設定
-                ax.set_facecolor('#d3d3d3')  # 地図部分の背景も薄い灰色に設定
+                fig.patch.set_facecolor('#2e2e2e')  # 全体の背景を薄い灰色に設定
+                ax.set_facecolor('#2e2e2e')  # 地図部分の背景も薄い灰色に設定
 
                 # 地図の描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
