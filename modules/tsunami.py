@@ -66,8 +66,11 @@ class tsunami(commands.Cog):
                         print(f"未一致地域: {area_name}")
 
                 fig, ax = plt.subplots(figsize=(10, 12))
-                ax.set_facecolor("#2e2e2e")
+                ax.set_facecolor("#2e2e2e")  # 背景色を薄い黒色に設定
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
+
+                # 軸を非表示にする
+                ax.set_axis_off()
 
                 plt.title("津波情報", fontsize=18, color="white")
                 patches = [
