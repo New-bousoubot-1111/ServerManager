@@ -3,12 +3,15 @@ import requests
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib import rcParams
 from nextcord.ext import commands, tasks
 from nextcord import File
-from matplotlib import rcParams
 
-# 日本語フォント設定
-rcParams['font.family'] = 'IPAexGothic'  # 別の日本語フォントを指定
+# 利用可能なフォントを確認して設定
+try:
+    rcParams['font.family'] = 'IPAexGothic'  # 使用可能なフォントを試す
+except Exception:
+    rcParams['font.family'] = 'DejaVu Sans'  # フォールバックとして標準フォントを設定
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -24,19 +27,19 @@ def normalize_region_name(name):
     """
     地域名を正規化する
     """
-    return name.replace("地方", "").replace("沿岸", "").replace(" ", "").strip()
+    return name.replace("地方", "").replace("沿岸", "").replace("・", "").strip()
 
 # 地域マッピング（手動補正が必要な場合）
 REGION_MAPPING = {
     "伊豆諸島": "東京都伊豆諸島",
     "小笠原諸島": "東京都小笠原村",
     "宮崎県": "宮崎県",
-    "愛媛県宇和海": "愛媛県宇和島",
+    "愛媛県宇和海": "愛媛県",
     "高知県": "高知県",
     "大分県豊後水道": "大分県",
     "鹿児島県東部": "鹿児島県",
     "種子島・屋久島": "鹿児島県種子島屋久島",
-    "沖縄本島": "沖縄県",
+    "沖縄本島": "沖縄県本島",
     "宮古島・八重山": "沖縄県宮古島市"
 }
 
@@ -102,7 +105,7 @@ class tsunami(commands.Cog):
 
                 # 注釈
                 plt.annotate(
-                    "1月1日 16時22分 気象庁発表",
+                    "最新情報 気象庁発表",
                     xy=(0.5, 1.05),
                     xycoords="axes fraction",
                     fontsize=10,
