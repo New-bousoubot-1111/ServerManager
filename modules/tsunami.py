@@ -68,18 +68,17 @@ class tsunami(commands.Cog):
                         print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
 
                 # 地図を描画
-                fig, ax = plt.subplots(figsize=(10, 12))  # サイズを大きく
+                fig, ax = plt.subplots(figsize=(12, 14))  # サイズを大きく
                 fig.patch.set_facecolor('#2a2a2a')  # 全体の背景色
                 ax.set_facecolor("#2a2a2a")  # 地図の背景色を薄い灰色に設定
 
                 # 地図描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
+                ax.set_xlim(122, 153)  # 経度の範囲 (日本列島全体に合わせる)
+                ax.set_ylim(20, 46)    # 緯度の範囲 (日本列島全体に合わせる)
                 # 軸を非表示にする
                 ax.set_axis_off()
-
-                # タイトル
-                plt.title("津波情報", fontsize=18, color="white")
 
                 # 凡例
                 patches = [
