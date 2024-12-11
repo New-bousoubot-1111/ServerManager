@@ -75,9 +75,6 @@ class tsunami(commands.Cog):
                 # 地図描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
-                ax.set_xlim([120, 150])  # 経度範囲（120〜150度）
-                ax.set_ylim([20, 50])  # 緯度範囲（20〜50度）
-
                 # 軸を非表示にする
                 ax.set_axis_off()
 
@@ -87,7 +84,7 @@ class tsunami(commands.Cog):
                     mpatches.Patch(color="red", label="津波警報"),
                     mpatches.Patch(color="yellow", label="津波注意報")
                 ]
-                plt.legend(handles=patches, loc="upper left", fontsize=12, frameon=False, title="津波情報", title_fontsize=14)
+                plt.legend(handles=patches, loc="upper left", fontsize=15, frameon=False, title="津波情報", title_fontsize=14)
 
                 # 画像保存（高解像度）
                 output_path = "./images/colored_map.png"
