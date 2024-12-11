@@ -19,12 +19,63 @@ GEOJSON_REGION_FIELD = 'nam'
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
-print(gdf[GEOJSON_REGION_FIELD].tolist())
+REGION_MAPPING = {
+    "京都府": "Kyoto Fu",
+    "佐賀県": "Saga Ken",
+    "熊本県": "Kumamoto Ken",
+    "香川県": "Kagawa Ken",
+    "愛知県": "Aichi Ken",
+    "栃木県": "Tochigi Ken",
+    "山梨県": "Yamanashi Ken",
+    "滋賀県": "Shiga Ken",
+    "群馬県": "Gunma Ken",
+    "宮城県": "Miyagi Ken",
+    "静岡県": "Shizuoka Ken",
+    "茨城県": "Ibaraki Ken",
+    "沖縄県": "Okinawa Ken",
+    "山形県": "Yamagata Ken",
+    "和歌山県": "Wakayama Ken",
+    "長崎県": "Nagasaki Ken",
+    "秋田県": "Akita Ken",
+    "岡山県": "Okayama Ken",
+    "福岡県": "Fukuoka Ken",
+    "岐阜県": "Gifu Ken",
+    "青森県": "Aomori Ken",
+    "大阪府": "Osaka Fu",
+    "長野県": "Nagano Ken",
+    "大分県": "Oita Ken",
+    "三重県": "Mie Ken",
+    "広島県": "Hiroshima Ken",
+    "北海道": "Hokkai Do",
+    "兵庫県": "Hyogo Ken",
+    "千葉県": "Chiba Ken",
+    "富山県": "Toyama Ken",
+    "東京都": "Tokyo To",
+    "埼玉県": "Saitama Ken",
+    "山口県": "Yamaguchi Ken",
+    "福島県": "Fukushima Ken",
+    "石川県": "Ishikawa Ken",
+    "福井県": "Fukui Ken",
+    "愛媛県": "Ehime Ken",
+    "奈良県": "Nara Ken",
+    "島根県": "Shimane Ken",
+    "岩手県": "Iwate Ken",
+    "鳥取県": "Tottori Ken",
+    "徳島県": "Tokushima Ken",
+    "鹿児島県": "Kagoshima Ken",
+    "新潟県": "Niigata Ken",
+    "高知県": "Kochi Ken",
+    "宮崎県": "Miyazaki Ken",
+    "神奈川県": "Kanagawa Ken"
+}
 
-# 地域名を部分一致させる関数
 def match_region(area_name, geojson_names):
+    # マッピング辞書を使用して変換
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
+    # 部分一致で検索
     best_match, score = process.extractOne(area_name, geojson_names)
-    if score >= 80:  # 類似度の閾値を設定（調整可能）
+    if score >= 80:  # 閾値を設定
         return best_match
     return None
 
