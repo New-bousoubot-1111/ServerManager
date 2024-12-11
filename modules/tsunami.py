@@ -86,7 +86,7 @@ class tsunami(commands.Cog):
                     color="white"
                 )
 
-                output_path = "./images/japan.geojson"
+                output_path = "./images/colored_map.png"
                 plt.savefig(output_path, bbox_inches="tight", facecolor=ax.figure.get_facecolor())
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
