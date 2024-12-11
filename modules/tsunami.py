@@ -22,7 +22,7 @@ gdf = gpd.read_file(GEOJSON_PATH)
 # 地域名を部分一致させる関数
 def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
-    if score >= 70:  # 類似度の閾値を設定（調整可能）
+    if score >= 40:  # 類似度の閾値を設定（調整可能）
         return best_match
     return None
 
