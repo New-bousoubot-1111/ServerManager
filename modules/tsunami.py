@@ -13,7 +13,7 @@ from datetime import datetime
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
-ALERT_COLORS = {"大津波警報": "purple", "津波警報": "red", "津波注意報": "yellow"}
+ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"
 GEOJSON_REGION_FIELD = 'nam'
 
