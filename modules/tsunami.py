@@ -67,7 +67,7 @@ class tsunami(commands.Cog):
 
                 # 背景色を薄い灰色に設定
                 fig, ax = plt.subplots(figsize=(10, 12))
-                ax.set_facecolor("lightgray")  # 日本の周りを薄い灰色に設定
+                ax.set_facecolor("#2e2e2e")  # 日本の周りを薄い灰色に設定
 
                 # 都道府県を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
