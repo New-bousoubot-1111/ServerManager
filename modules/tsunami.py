@@ -5,7 +5,6 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
-from matplotlib import rcParams
 import datetime
 
 # 設定ファイルの読み込み
@@ -65,7 +64,7 @@ class tsunami(commands.Cog):
             self.plot_map(output_path)
 
             # Discordに送信
-            self.send_map_to_discord(output_path)
+            await self.send_map_to_discord(output_path)
         else:
             print("津波警報データがありません。")
 
@@ -87,6 +86,7 @@ class tsunami(commands.Cog):
             matched = False
             for index, row in gdf.iterrows():
                 region_name = row[GEOJSON_REGION_FIELD]
+                print(f"地域名: {region_name}, マッピング対象: {mapped_region}")
                 if mapped_region in region_name:
                     gdf.loc[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                     matched = True
