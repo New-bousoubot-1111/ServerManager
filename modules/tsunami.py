@@ -15,7 +15,7 @@ with open('json/config.json', 'r') as f:
 color = nextcord.Colour(int(config['color'], 16))
 
 # 地図画像とポリゴンデータの準備
-image_path = "./images/tsunami.png"  # 地図画像のパス
+image_path = "./images/tsunami.png.shp"  # 地図画像のパス
 map_data_path = "./images/tsunami.png.shp"  # Shapefileデータのパス
 
 # 地図データを読み込む (例: GeoPandasを使用)
