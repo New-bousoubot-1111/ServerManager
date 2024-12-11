@@ -98,11 +98,9 @@ class tsunami(commands.Cog):
                         description="津波警報が発表されている地域の地図です",
                         color=0xFF0000  # 赤色
                     )
+                    file = File(output_path, filename="津波警報地図.png")
                     embed.set_image(url="attachment://colored_map.png")
-                    await tsunami_channel.send(
-                        embed=embed,
-                        file=File(output_path, filename="colored_map.png")
-                    )
+                    await tsunami_channel.send(embed=embed, file=File)
             else:
                 print("津波警報データがありません。")
         else:
