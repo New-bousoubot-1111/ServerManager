@@ -65,13 +65,12 @@ class tsunami(commands.Cog):
                     if not matched:
                         print(f"未一致地域: {area_name}")
 
-                # 背景色を薄い黒色に設定
+                # 日本の周りの背景色を薄い灰色に設定
                 fig, ax = plt.subplots(figsize=(10, 12))
-                ax.set_facecolor("#2e2e2e")
+                ax.set_facecolor('#d3d3d3')  # 海の部分を薄い灰色に設定
 
-                # 海の部分を薄い灰色に設定（都道府県の境界線は変更しません）
-                gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")  # 都道府県を描画
-                ax.set_facecolor('#2e2e2e')  # 海の部分を薄い灰色に設定
+                # 都道府県を描画
+                gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
 
                 plt.title("津波情報", fontsize=18, color="white")
                 patches = [
