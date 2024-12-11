@@ -72,7 +72,7 @@ class tsunami(commands.Cog):
                 fig.patch.set_facecolor('#2a2a2a')
                 ax.set_facecolor("#2a2a2a")  # 背景色を薄い灰色に設定
                 # 地図を描画
-                gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
+                gdf.plot(ax=ax, color=gdf["color"], edgecolor="#d3d3d3")
                 # 軸を非表示にする
                 ax.set_axis_off()
                 # タイトル
