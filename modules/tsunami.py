@@ -34,7 +34,7 @@ class tsunami(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "|tasks         |" + Fore.RESET)
+        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
         print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
