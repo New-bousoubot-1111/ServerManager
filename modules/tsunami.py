@@ -54,7 +54,7 @@ class tsunami(commands.Cog):
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
                 # 全ての地域を白に初期化
-                gdf["color"] = "#d3d3d3"
+                gdf["color"] = "#767676"
                 # 地域ごとに色付け
                 for area_name, alert_type in tsunami_alert_areas.items():
                     matched = False
@@ -69,8 +69,8 @@ class tsunami(commands.Cog):
 
                 # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))
-                fig.patch.set_facecolor('#2e2e2e')
-                ax.set_facecolor("#2e2e2e")  # 背景色を薄い灰色に設定
+                fig.patch.set_facecolor('#2a2a2a')
+                ax.set_facecolor("#2a2a2a")  # 背景色を薄い灰色に設定
                 # 地図を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="gray")
                 # 軸を非表示にする
