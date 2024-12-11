@@ -59,9 +59,11 @@ class tsunami(commands.Cog):
                 # 地域ごとに色付け
                 for area_name, alert_type in tsunami_alert_areas.items():
                     matched = False
+                    # REGON_MAPPING を使って地域名を対応付ける
+                    mapped_region = REGION_MAPPING.get(area_name, area_name)
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        if area_name in region_name or REGION_MAPPING.get(area_name, "") in region_name:
+                        if mapped_region in region_name:  # 部分一致でマッチさせる
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
                             break
