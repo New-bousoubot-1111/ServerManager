@@ -76,8 +76,8 @@ class tsunami(commands.Cog):
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
                 # 日本列島とその周辺の島々が大きく表示されるように範囲を調整
-                ax.set_xlim(120, 160)  # 経度を広げ、より大きく表示
-                ax.set_ylim(24, 45)    # 緯度の範囲を調整し、全体を大きく表示
+                ax.set_xlim(130, 150)  # 経度を広げ、より大きく表示
+                ax.set_ylim(25, 45)    # 緯度の範囲を調整し、全体を大きく表示
 
                 # 軸を非表示にする
                 ax.set_axis_off()
