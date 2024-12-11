@@ -5,7 +5,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import re
-from fuzzywuzzy import preprocess
+from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 
