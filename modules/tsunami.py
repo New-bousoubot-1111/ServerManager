@@ -103,7 +103,7 @@ class tsunami(commands.Cog):
                     if not tsunami["cancelled"]:
                         for area in tsunami.get("areas", []):
                             area_name = area["name"]
-                            alert_type = area.get("grade", "津波注意報")  # gradeフィールドを使用
+                            alert_type = area.get("grade")  # gradeフィールドを使用
                             tsunami_alert_areas[area_name] = alert_type
 
                 # GeoJSONの地域名リストを取得
