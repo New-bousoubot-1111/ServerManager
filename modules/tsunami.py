@@ -74,11 +74,6 @@ class tsunami(commands.Cog):
 
                 # 地域を描画
                 gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
-
-                # 凡例とタイトルの追加
-                plt.title("津波情報", fontsize=16)
-                plt.annotate("発表日時: 気象庁", (0, 0), xycoords="axes fraction", fontsize=10)
-
                 # 画像を保存
                 output_path = "./images/colored_map.png"
                 plt.savefig(output_path)
