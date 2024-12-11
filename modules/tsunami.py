@@ -5,11 +5,10 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from fuzzywuzzy import process
-from nextcord.ext import commands, tasks
-from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
-import pytz
+from nextcord.ext import commands, tasks
+from nextcord import File, Embed
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -80,55 +79,37 @@ REGION_MAPPING = {
     "宮古島・八重山地方": "Okinawa Ken"
 }
 
-def save_tsunami_sent_ids(self):
-    with open('tsunami_id.json', 'w') as f:
-        json.dump(list(self.tsunami_sent_ids), f)
+# 通知済みIDを保存・読み込みする関数
+def save_tsunami_sent_ids(sent_ids):
+    with open('tsunami_sent_ids.json', 'w') as f:
+        json.dump(list(sent_ids), f)
 
-def load_tsunami_sent_ids(self):
+def load_tsunami_sent_ids():
     try:
-        with open('tsunami_id.json', 'r') as f:
-            self.tsunami_sent_ids = set(json.load(f))
+        with open('tsunami_sent_ids.json', 'r') as f:
+            return set(json.load(f))
     except FileNotFoundError:
-        self.tsunami_sent_ids = set()
+        return set()
 
+# 地域名をマッチングする関数
 def match_region(area_name, geojson_names):
-    # マッピング辞書を使用して変換
     if area_name in REGION_MAPPING:
         return REGION_MAPPING[area_name]
-    # 部分一致で検索
     best_match, score = process.extractOne(area_name, geojson_names)
-    if score >= 80:  # 閾値を設定
+    if score >= 80:
         return best_match
     return None
-
-def get_latest_tsunami_alert(data):
-    # 日付を比較するために、created_atをdatetime型に変換
-    latest_alert = None
-    latest_date = None
-
-    for tsunami in data:
-        if tsunami["cancelled"]:
-            continue  # キャンセルされた警報は無視
-
-        created_at = tsunami["created_at"]
-        created_at_dt = datetime.strptime(created_at, "%Y/%m/%d %H:%M:%S.%f")  # 文字列をdatetime型に変換
-
-        # 最新のものを選ぶ
-        if latest_date is None or created_at_dt > latest_date:
-            latest_alert = tsunami
-            latest_date = created_at_dt
-
-    return latest_alert
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.tsunami_sent_ids = load_tsunami_sent_ids()
+        self.check_tsunami.start()
 
     @commands.Cog.listener()
     async def on_ready(self):
         print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
         print(Fore.BLUE + "|--------------|" + Fore.RESET)
-        self.check_tsunami.start()
 
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
@@ -137,27 +118,50 @@ class tsunami(commands.Cog):
         if response.status_code == 200:
             data = response.json()
             if data:
-                # 最新の津波警報のみ取得
-                latest_tsunami = get_latest_tsunami_alert(data)
-                if latest_tsunami:
-                    tsunami_id = latest_tsunami.get("id")
+                for tsunami in data:
+                    tsunami_id = tsunami.get("id")
                     if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
-                        return  # すでに通知済みの場合はスキップ
+                        continue
 
+                    # 津波警報情報の通知
+                    embed = Embed(
+                        title="津波警報",
+                        description="津波警報が発表されました。安全な場所に避難してください。",
+                        color=0xff0000
+                    )
+                    tsunami_time = parser.parse(tsunami.get("time", "不明"))
+                    formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
+                    embed.add_field(name="発表時刻", value=formatted_time)
+                    
                     tsunami_alert_areas = {}
-                    if not latest_tsunami["cancelled"]:
-                        for area in latest_tsunami.get("areas", []):
-                            area_name = area["name"]
-                            alert_type = area.get("grade")  # gradeフィールドを使用
-                            tsunami_alert_areas[area_name] = alert_type
+                    for area in tsunami.get("areas", []):
+                        area_name = area["name"]
+                        alert_type = area.get("grade")
+                        tsunami_alert_areas[area_name] = alert_type
 
-                    # GeoJSONの地域名リストを取得
+                        first_height = area.get("firstHeight", {})
+                        maxHeight = area.get("maxHeight", {})
+                        condition = first_height.get("condition", "")
+                        description = maxHeight.get("description", "不明")
+                        arrival_time = first_height.get('arrivalTime', '不明')
+                        if arrival_time != '不明':
+                            try:
+                                parsed_time = parser.parse(arrival_time)
+                                formatted_arrival_time = parsed_time.strftime('%H時%M分')
+                            except (ValueError, TypeError):
+                                formatted_arrival_time = '不明'
+                        else:
+                            formatted_arrival_time = '不明'
+
+                        embed.add_field(
+                            name=area["name"],
+                            value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
+                            inline=False
+                        )
+
+                    # 地図生成と送信
                     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
-
-                    # 全ての地域を灰色で初期化
-                    gdf["color"] = "#767676"
-
-                    # 地域ごとに色付け
+                    gdf["color"] = "#767676"  # 初期化
                     for area_name, alert_type in tsunami_alert_areas.items():
                         matched_region = match_region(area_name, geojson_names)
                         if matched_region:
@@ -165,57 +169,24 @@ class tsunami(commands.Cog):
                         else:
                             print(f"地域名が一致しませんでした: {area_name}")
 
-                    # 地図を描画
                     fig, ax = plt.subplots(figsize=(10, 12))
-                    fig.patch.set_facecolor('#2a2a2a')  # 地図全体の背景色を薄い灰色に設定
+                    fig.patch.set_facecolor('#2a2a2a')
                     ax.set_facecolor("#2a2a2a")
                     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
                     ax.set_axis_off()
 
-                    # 地図を保存
                     output_path = "./images/colored_map.png"
                     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
 
-                    # Discordに送信
-                    tsunami_channel = self.get_channel(int(config['eew_channel']))
+                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
-                        embed = Embed(
-                            title="津波警報",
-                            description="津波警報が発表されています。安全な場所に避難してください。",
-                            color=0xFF0000
-                        )
                         file = File(output_path, filename="津波警報地図.png")
                         embed.set_image(url="attachment://津波警報地図.png")
-                        tsunami_time = parser.parse(latest_tsunami.get("time", "不明"))
-                        formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
-                        embed.add_field(name="発表時刻", value=formatted_time)
-
-                        for area in latest_tsunami.get("areas", []):
-                            first_height = area.get("firstHeight", {})
-                            maxHeight = area.get("maxHeight", {})
-                            condition = first_height.get("condition", "")
-                            description = maxHeight.get("description", "不明")
-                            arrival_time = first_height.get('arrivalTime', '不明')
-                            if arrival_time != '不明':
-                                try:
-                                    parsed_time = parser.parse(arrival_time)
-                                    formatted_arrival_time = parsed_time.strftime('%H時%M分')
-                                except (ValueError, TypeError):
-                                    formatted_arrival_time = '不明'
-                            else:
-                                formatted_arrival_time = '不明'
-
-                            embed.add_field(
-                                name=area["name"],
-                                value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
-                                inline=False
-                            )
-
                         await tsunami_channel.send(embed=embed, file=file)
+
+                    # 通知済みIDを記録
                     self.tsunami_sent_ids.add(tsunami_id)
-                    self.save_tsunami_sent_ids()
-                else:
-                    print("最新の津波警報がありません。")
+                    save_tsunami_sent_ids(self.tsunami_sent_ids)
             else:
                 print("津波警報データがありません。")
         else:
