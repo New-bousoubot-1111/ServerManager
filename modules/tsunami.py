@@ -24,14 +24,15 @@ REGION_MAPPING = {
     "高知県": "高知県",
     "鹿児島県東部": "鹿児島県",
     "種子島・屋久島地方": "鹿児島県種子島屋久島",
-    "宮古島・八重山地方": "沖縄県宮古島市八重山"
+    "宮古島・八重山地方": "沖縄県宮古島市八重山",
+    "神奈川県": "Kanagawa Ken"  # 神奈川県を追加
 }
 
 # GeoJSONデータを読み込む
 gdf = gpd.read_file(GEOJSON_PATH)
 
-# 日本語フォント設定（デフォルトで日本語が表示できるようにする）
-rcParams['font.family'] = 'Noto Sans CJK JP'  # Notoフォントを使用
+# 日本語フォント設定（matplotlibのデフォルトフォントを変更）
+rcParams['font.family'] = 'DejaVu Sans'
 rcParams['axes.unicode_minus'] = False  # マイナス記号が表示されない問題を回避
 
 class tsunami(commands.Cog):
