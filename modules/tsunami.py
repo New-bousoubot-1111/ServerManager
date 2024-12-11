@@ -58,6 +58,7 @@ class tsunami(commands.Cog):
                     matched = False
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
+                        # マッチングのために、`area_name` と `region_name` の一致を確認
                         if area_name in region_name or REGION_MAPPING.get(area_name, "") in region_name:
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
