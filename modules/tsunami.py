@@ -1,10 +1,11 @@
 import json
 import requests
+from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
-import re  # 正規表現を使用するためにインポート
+from matplotlib import rcParams
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -12,7 +13,7 @@ with open('json/config.json', 'r') as f:
 
 ALERT_COLORS = {"大津波警報": "purple", "津波警報": "red", "津波注意報": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"
-GEOJSON_REGION_FIELD = 'nam'  # 例として 'nam' フィールドを使用
+GEOJSON_REGION_FIELD = 'nam'
 
 # APIの地域名とGeoJSONの地域名を対応付けるマッピング
 REGION_MAPPING = {
@@ -37,7 +38,8 @@ class tsunami(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print("tsunami cog ready")
+        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
+        print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
     @tasks.loop(minutes=1)
@@ -63,8 +65,8 @@ class tsunami(commands.Cog):
                     mapped_region = REGION_MAPPING.get(area_name, area_name)
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        # 正規表現で部分一致を確認
-                        if re.search(mapped_region, region_name):
+                        # 部分一致でマッチさせる
+                        if mapped_region in region_name:  
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
                             break
@@ -87,7 +89,12 @@ class tsunami(commands.Cog):
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     # Embedを作成
-                    embed = Embed(title="津波警報",description="津波警報が発表されている地域の地図です",color=0xFF0000)
+                    embed = Embed(
+                        title="津波警報",
+                        description="津波警報が発表されている地域の地図です。",
+                        color=0xFF0000  # 警告色を赤に設定
+                    )
+                    # 添付ファイルとして画像を追加
                     file = File(output_path, filename="津波警報地図.png")
                     embed.set_image(url="attachment://津波警報地図.png")  # 添付ファイル名を指定
                     # メッセージ送信
