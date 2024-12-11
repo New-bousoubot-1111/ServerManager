@@ -1,34 +1,25 @@
 import json
 import requests
-from PIL import Image, ImageDraw
+import geopandas as gpd
+import matplotlib.pyplot as plt
 from nextcord.ext import commands, tasks
 from nextcord import File
 from colorama import Fore
 
-# config ファイルの読み込み
+# configファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
-# 津波画像のパス
-image_path = "./images/tsunami.png"  # ベースとなる地図画像
-output_path = "./images/colored_map.png"
-
 # 津波警報の種類に対応する色
 ALERT_COLORS = {
-    "大津波警報": (255, 0, 255, 128),  # 紫
-    "津波警報": (255, 0, 0, 128),     # 赤
-    "津波注意報": (255, 255, 0, 128)  # 黄
+    "大津波警報": "purple",
+    "津波警報": "red",
+    "津波注意報": "yellow"
 }
 
-# 地域名と座標を定義（例として簡略化、実際には地図に対応した座標を設定）
-AREA_COORDINATES = {
-    "北海道": [(600, 100), (700, 200)],  # 左上と右下の座標
-    "東北地方": [(650, 200), (750, 300)],
-    "関東地方": [(700, 300), (800, 400)],
-    "伊豆諸島": [(720, 500), (770, 550)],
-    "小笠原諸島": [(750, 600), (800, 650)]
-    # 他の地域の座標も追加
-}
+# GeoJSON データの読み込み
+GEOJSON_PATH = "./images/japan.geojson"  # 日本の地域データ (都道府県や市区町村の境界)
+gdf = gpd.read_file(GEOJSON_PATH)
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
@@ -42,34 +33,40 @@ class tsunami(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def check_tsunami(self):
-        url = "https://api.p2pquake.net/v2/jma/tsunami"  # 津波API
+        url = "https://api.p2pquake.net/v2/jma/tsunami"  # 津波 API
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
             if data:
-                tsunami_alert_areas = []  # 警報発表中の地域を格納
-                area_alert_types = {}    # 地域ごとの警報種類を保存
+                tsunami_alert_areas = {}  # 地域ごとの警報種類を保存
 
+                # API データ処理
                 for tsunami in data:
                     if not tsunami["cancelled"]:  # 発表中の警報のみ処理
                         for area in tsunami.get("areas", []):
                             area_name = area["name"]
                             alert_type = area.get("kind", "津波注意報")
-                            tsunami_alert_areas.append(area_name)
-                            area_alert_types[area_name] = alert_type
+                            tsunami_alert_areas[area_name] = alert_type
 
-                # 地図画像に色付け
-                map_image = Image.open(image_path).convert("RGBA")
-                draw = ImageDraw.Draw(map_image, "RGBA")
+                # 地図の描画
+                fig, ax = plt.subplots(figsize=(10, 12))
+                gdf["color"] = "white"  # デフォルトの色
 
-                for area, coords in AREA_COORDINATES.items():
-                    if area in tsunami_alert_areas:
-                        alert_type = area_alert_types.get(area, "津波注意報")
-                        color = ALERT_COLORS.get(alert_type, (255, 255, 255, 128))
-                        draw.rectangle(coords, fill=color)
+                for index, row in gdf.iterrows():
+                    for area_name, alert_type in tsunami_alert_areas.items():
+                        if area_name in row["NAM"]:
+                            gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
+
+                # 地域を描画
+                gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
+
+                # 凡例とタイトルの追加
+                plt.title("津波情報", fontsize=16)
+                plt.annotate("発表日時: 気象庁", (0, 0), xycoords="axes fraction", fontsize=10)
 
                 # 画像を保存
-                map_image.save(output_path)
+                output_path = "./images/colored_map.png"
+                plt.savefig(output_path)
 
                 # Discord チャンネルに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
