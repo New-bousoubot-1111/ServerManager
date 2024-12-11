@@ -8,6 +8,8 @@ from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
+from dateutil import parser
+import pytz
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -127,6 +129,10 @@ class tsunami(commands.Cog):
                 # 最新の津波警報のみ取得
                 latest_tsunami = get_latest_tsunami_alert(data)
                 if latest_tsunami:
+                    tsunami_id = latest_tsunami.get("id")
+                    if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
+                        return  # すでに通知済みの場合はスキップ
+
                     tsunami_alert_areas = {}
                     if not latest_tsunami["cancelled"]:
                         for area in latest_tsunami.get("areas", []):
@@ -160,16 +166,43 @@ class tsunami(commands.Cog):
                     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
 
                     # Discordに送信
-                    tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+                    tsunami_channel = self.get_channel(int(config['eew_channel']))
                     if tsunami_channel:
                         embed = Embed(
                             title="津波警報",
-                            description="津波警報が発表されている地域の地図です。",
+                            description="津波警報が発表されています。安全な場所に避難してください。",
                             color=0xFF0000
                         )
                         file = File(output_path, filename="津波警報地図.png")
                         embed.set_image(url="attachment://津波警報地図.png")
+                        tsunami_time = parser.parse(latest_tsunami.get("time", "不明"))
+                        formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
+                        embed.add_field(name="発表時刻", value=formatted_time)
+
+                        for area in latest_tsunami.get("areas", []):
+                            first_height = area.get("firstHeight", {})
+                            maxHeight = area.get("maxHeight", {})
+                            condition = first_height.get("condition", "")
+                            description = maxHeight.get("description", "不明")
+                            arrival_time = first_height.get('arrivalTime', '不明')
+                            if arrival_time != '不明':
+                                try:
+                                    parsed_time = parser.parse(arrival_time)
+                                    formatted_arrival_time = parsed_time.strftime('%H時%M分')
+                                except (ValueError, TypeError):
+                                    formatted_arrival_time = '不明'
+                            else:
+                                formatted_arrival_time = '不明'
+
+                            embed.add_field(
+                                name=area["name"],
+                                value=f"到達予想時刻: {formatted_arrival_time}\n予想高さ: {description}\n{condition}",
+                                inline=False
+                            )
+
                         await tsunami_channel.send(embed=embed, file=file)
+                    self.tsunami_sent_ids.add(tsunami_id)
+                    self.save_tsunami_sent_ids()
                 else:
                     print("最新の津波警報がありません。")
             else:
