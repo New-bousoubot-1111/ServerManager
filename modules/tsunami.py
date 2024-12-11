@@ -3,8 +3,9 @@ import requests
 from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
-from nextcord import File, Embed
+from nextcord import File
 from matplotlib import rcParams
 
 # 設定ファイルの読み込み
@@ -23,7 +24,10 @@ REGION_MAPPING = {
     "高知県": "高知県",
     "鹿児島県東部": "鹿児島県",
     "種子島・屋久島地方": "鹿児島県種子島屋久島",
-    "宮古島・八重山地方": "沖縄県宮古島市八重山"
+    "宮古島・八重山地方": "沖縄県宮古島市八重山",
+    "愛媛県宇和海沿岸": "愛媛県宇和海沿岸",  # 追加
+    "大分県豊後水道沿岸": "大分県豊後水道沿岸",  # 追加
+    "沖縄本島地方": "沖縄本島地方"  # 追加
 }
 
 # GeoJSONデータを読み込む
@@ -53,21 +57,23 @@ class tsunami(commands.Cog):
                             area_name = area["name"]
                             alert_type = area.get("kind", "津波注意報")
                             tsunami_alert_areas[area_name] = alert_type
+
                 # 全ての地域を白に初期化
                 gdf["color"] = "#767676"
+
                 # 地域ごとに色付け
                 for area_name, alert_type in tsunami_alert_areas.items():
                     matched = False
-                    # REGION_MAPPING を使って地域名を対応付ける
-                    mapped_region = REGION_MAPPING.get(area_name, area_name)
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        if mapped_region in region_name:  # 部分一致でマッチさせる
+                        # マッピングがない場合でも部分一致でマッチさせる
+                        mapped_region = REGION_MAPPING.get(area_name, area_name)
+                        if mapped_region in region_name or area_name in region_name:
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
                             break
                     if not matched:
-                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')}")
+                        print(f"未一致地域: {area_name} | REGION_MAPPING: {REGION_MAPPING.get(area_name, 'なし')} | 地域名: {region_name}")
 
                 # 地図を描画
                 fig, ax = plt.subplots(figsize=(10, 12))  # サイズを大きく
@@ -87,19 +93,16 @@ class tsunami(commands.Cog):
                 # Discordに送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
-                    # Embedを作成
-                    embed = Embed(
+                    embed = nextcord.Embed(
                         title="津波警報",
-                        description="津波警報が発表されている地域の地図です。",
-                        color=0xFF0000  # 警告色を赤に設定
+                        description="津波警報が発表されている地域の地図です",
+                        color=0xFF0000  # 赤色
                     )
-
-                    # 添付ファイルとして画像を追加
-                    file = File(output_path, filename="津波警報地図.png")
-                    embed.set_image(url="attachment://津波警報地図.png")  # 添付ファイル名を指定
-
-                    # メッセージ送信
-                    await tsunami_channel.send(embed=embed, file=file)
+                    embed.set_image(url="attachment://colored_map.png")
+                    await tsunami_channel.send(
+                        embed=embed,
+                        file=File(output_path, filename="colored_map.png")
+                    )
             else:
                 print("津波警報データがありません。")
         else:
