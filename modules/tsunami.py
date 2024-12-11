@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from nextcord.ext import commands, tasks
 from nextcord import File
+from matplotlib import rcParams
+
+# 日本語フォントの設定
+rcParams['font.family'] = 'Noto Sans CJK JP'
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -58,7 +62,7 @@ class tsunami(commands.Cog):
                     matched = False
                     for index, row in gdf.iterrows():
                         region_name = row[GEOJSON_REGION_FIELD]
-                        # マッチングのために、`area_name` と `region_name` の一致を確認
+                        # 地域名が完全に一致するか、マッピングで一致するか確認
                         if area_name in region_name or REGION_MAPPING.get(area_name, "") in region_name:
                             gdf.at[index, "color"] = ALERT_COLORS.get(alert_type, "white")
                             matched = True
