@@ -81,12 +81,12 @@ REGION_MAPPING = {
 }
 
     def save_tsunami_sent_ids(self):
-        with open('tsunami_sent_ids.json', 'w') as f:
+        with open('tsunami_id.json', 'w') as f:
             json.dump(list(self.tsunami_sent_ids), f)
 
     def load_tsunami_sent_ids(self):
         try:
-            with open('tsunami_sent_ids.json', 'r') as f:
+            with open('tsunami_id.json', 'r') as f:
                 self.tsunami_sent_ids = set(json.load(f))
         except FileNotFoundError:
             self.tsunami_sent_ids = set()
