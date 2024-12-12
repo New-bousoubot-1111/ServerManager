@@ -114,7 +114,7 @@ def create_embed(data):
 
     # 地域が不明でない場合にのみ、津波発表の説明を追加
     if data.get("areas"):
-        embed.description = f"{embed_title}が発表されました"
+        embed.description = f"{embed_title}が発表されました\n安全な場所に避難してください"
         embed.add_field(
                     name="発表時刻",
                     value=formatted_time,
