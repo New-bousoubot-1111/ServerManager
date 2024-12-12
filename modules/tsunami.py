@@ -238,12 +238,12 @@ class tsunami(commands.Cog):
                 if cancelled and tsunami_id not in self.tsunami_sent_ids:
                     # 解除の発表時刻を取得
                     created_at = parser.parse(tsunami.get("created_at", "不明"))
-                    cancelled_time = created_at.strftime('%Y年%m月%d日 %H時%M分')  # 日付を含めたフォーマット
+                    cancelled_time = created_at.strftime('%H時%M分')  # 日付を含めたフォーマット
 
                     # 解除メッセージをEmbedとして作成
                     cancel_embed = Embed(
-                        title="津波情報の解除",
-                        description=f"津波警報が解除されました。\n解除時刻: {cancelled_time}",
+                        title="津波情報",
+                        description=f"{cancelled_time}頃に津波警報、注意報等が解除されました。",
                         color=0x00FF00  # 緑色
                     )
                     await tsunami_channel.send(embed=cancel_embed)
