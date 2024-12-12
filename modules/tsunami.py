@@ -88,15 +88,36 @@ def match_region(area_name, geojson_names):
 
 def create_embed(data):
     """津波警報のEmbedを作成"""
+    # 津波レベルを収集
+    alert_levels = {
+        "Advisory": "大津波警報",
+        "Warning": "津波警報",
+        "Watch": "津波注意報"
+    }
+
+    # デフォルトタイトル（全レベルが不明の場合）
+    embed_title = "津波情報"
+
+    # 地域のレベルを収集して最も深刻なレベルを判断
+    levels_in_data = [area.get("grade") for area in data.get("areas", [])]
+    for level in ["Advisory", "Warning", "Watch"]:
+        if level in levels_in_data:
+            embed_title = alert_levels[level]
+            break
+
+    # Embedを作成
     embed = Embed(
-        title="津波警報",
+        title=embed_title,
         description="津波警報が発表されました。安全な場所に避難してください。",
         color=0xff0000
     )
+
+    # 発表時刻のフォーマット
     tsunami_time = parser.parse(data.get("time", "不明"))
     formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
     embed.add_field(name="発表時刻", value=formatted_time, inline=False)
 
+    # 地域ごとの情報を追加
     for area in data.get("areas", []):
         area_name = area["name"]
         first_height = area.get("firstHeight", {})
@@ -104,18 +125,19 @@ def create_embed(data):
         condition = first_height.get("condition")
         description = maxHeight.get("description", "不明")
         arrival_time = first_height.get("arrivalTime", "不明")
-        
+
         if arrival_time != "不明":
             try:
                 arrival_time = parser.parse(arrival_time).strftime('%H時%M分')
             except ValueError:
                 arrival_time = "不明"
-        
+
         embed.add_field(
             name=area_name,
             value=f"到達予想時刻: {arrival_time}\n予想高さ: {description}\n{condition}",
             inline=False
         )
+
     return embed
 
 def generate_map(tsunami_alert_areas):
