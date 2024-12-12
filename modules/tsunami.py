@@ -94,7 +94,7 @@ def create_embed(data):
     }
     # デフォルトタイトル（全レベルが不明の場合）
     embed_title = "津波情報"
-    embed_color = 0x767676
+    embed_color = 0x00FF00
 
     # 地域のレベルを収集して最も深刻なレベルを判断
     levels_in_data = [area.get("grade") for area in data.get("areas", [])]
@@ -152,7 +152,8 @@ def create_embed(data):
     # 地域が不明の場合、地域情報がない旨を追加
     if not data.get("areas"):
         embed.add_field(
-            value=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
+            name=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
+            value="念のため、今後の情報に気をつけてください。",
             inline=False
         )
 
