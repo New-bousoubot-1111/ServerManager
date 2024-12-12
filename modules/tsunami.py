@@ -184,12 +184,11 @@ class tsunami(commands.Cog):
                         lambda x: region_color if x == geojson_name else "none"
                     )
                     
-                    fig, ax = plt.subplots(figsize=(8, 8))
+                    fig, ax = plt.subplots(figsize=(10, 12))
                     fig.patch.set_facecolor('#2a2a2a')  # 地図全体の背景色を薄い灰色に設定
                     ax.set_facecolor("#2a2a2a")
-                    gdf.plot(ax=ax, color=gdf["alert_color"], edgecolor="black", linewidth=0.5)
+                    gdf.plot(ax=ax, color=gdf["alert_color"])
                     ax.axis("off")
-                    plt.title("津波警報地域", fontsize=15)
                     plt.savefig(f"./images/{area_name}.png")
                     plt.close()
                     
