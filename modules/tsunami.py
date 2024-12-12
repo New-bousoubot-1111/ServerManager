@@ -87,15 +87,16 @@ def match_region(area_name, geojson_names):
     return best_match if score >= 80 else None
 
 def create_embed(data):
-    """Embedメッセージを作成"""
     alert_levels = {
         "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
         "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
         "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
+    # デフォルトタイトル（全レベルが不明の場合）
     embed_title = "津波情報"
     embed_color = 0x767676
 
+    # 地域のレベルを収集して最も深刻なレベルを判断
     levels_in_data = [area.get("grade") for area in data.get("areas", [])]
     for level in ["Advisory", "Warning", "Watch"]:
         if level in levels_in_data:
@@ -113,6 +114,7 @@ def create_embed(data):
     formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
     embed.add_field(name="発表時刻", value=formatted_time, inline=False)
 
+    # 地域ごとの情報を追加
     for area in data.get("areas", []):
         area_name = area["name"]
         first_height = area.get("firstHeight", {})
@@ -138,19 +140,21 @@ def create_embed(data):
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成"""
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
-    gdf["color"] = "#767676"
+    gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
             gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
+    # 地図の描画
     fig, ax = plt.subplots(figsize=(10, 12))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
+    # 地図の保存
     output_path = "./images/colored_map.png"
     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
     plt.close()
@@ -204,7 +208,6 @@ class tsunami(commands.Cog):
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
-            
             for tsunami in filtered_tsunamis:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
@@ -226,30 +229,27 @@ class tsunami(commands.Cog):
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
 
-            # 解除された津波警報の中で最新のものを取得
-            cancelled_tsunamis = [
-                tsunami for tsunami in data if tsunami.get("cancelled")
-            ]
-            if cancelled_tsunamis:
-                latest_cancelled_tsunami = max(
-                    cancelled_tsunamis, key=lambda x: parser.parse(x.get("time", "1970-01-01T00:00:00"))
-                )
-                cancelled_id = latest_cancelled_tsunami.get("id")
-                if cancelled_id not in self.tsunami_sent_ids:
-                    # 解除された津波の発表時刻を取得
-                    created_at = parser.parse(latest_cancelled_tsunami.get("created_at", "不明"))
-                    cancelled_time = created_at.strftime('%H時%M分')  # 発表時刻を表示
+            # 解除された津波警報
+            for tsunami in data:
+                cancelled = tsunami.get("cancelled", False)
+                tsunami_id = tsunami.get("id")
 
-                    # 解除メッセージをEmbedとして送信
+                # 解除された津波警報を確認
+                if cancelled and tsunami_id not in self.tsunami_sent_ids:
+                    # 解除の発表時刻を取得
+                    created_at = parser.parse(tsunami.get("created_at", "不明"))
+                    cancelled_time = created_at.strftime('%Y年%m月%d日 %H時%M分')  # 日付を含めたフォーマット
+
+                    # 解除メッセージをEmbedとして作成
                     cancel_embed = Embed(
-                        title="津波情報",
-                        description=f"{cancelled_time}頃に津波警報が解除されました",
-                        color=0x00FF00  # 解除された場合は緑色
+                        title="津波情報の解除",
+                        description=f"津波警報が解除されました。\n解除時刻: {cancelled_time}",
+                        color=0x00FF00  # 緑色
                     )
                     await tsunami_channel.send(embed=cancel_embed)
-                    
-                    # 送信済みIDに追加して、再送信を防止
-                    self.tsunami_sent_ids.add(cancelled_id)
+
+                    # 送信済みリストに追加
+                    self.tsunami_sent_ids.add(tsunami_id)
                     self.save_tsunami_sent_ids()
 
         else:
