@@ -126,14 +126,20 @@ def create_embed(data):
         if arrival_time != "不明":
             try:
                 arrival_time = parser.parse(arrival_time).strftime('%H時%M分')
+                embed.add_field(
+                    name=area_name,
+                    value=f"到達予想時刻: {arrival_time}\n予想高さ: {description}\n{condition}",
+                    inline=False
+                )
             except ValueError:
-                arrival_time = "不明"
+                pass  # 到達予想時刻が不正の場合は追加しない
 
-        embed.add_field(
-            name=area_name,
-            value=f"到達予想時刻: {arrival_time}\n予想高さ: {description}\n{condition}",
-            inline=False
-        )
+        elif arrival_time == "不明":
+            embed.add_field(
+                name=area_name,
+                value=f"予想高さ: {description}\n{condition}",
+                inline=False
+            )
 
     return embed
 
@@ -231,7 +237,7 @@ class tsunami(commands.Cog):
 
             # 解除された津波警報
             for tsunami in data:
-                cancelled = tsunami.get("cancelled", True)
+                cancelled = tsunami.get("cancelled", False)
                 tsunami_id = tsunami.get("id")
 
                 # 解除された津波警報を確認
@@ -243,7 +249,7 @@ class tsunami(commands.Cog):
                     # 解除メッセージをEmbedとして作成
                     cancel_embed = Embed(
                         title="津波情報",
-                        description=f"{cancelled_time}頃に津波警報、注意報等が解除されました。",
+                        description=f"{cancelled_time}頃に津波警報が解除されました。",
                         color=0x00FF00  # 緑色
                     )
                     await tsunami_channel.send(embed=cancel_embed)
