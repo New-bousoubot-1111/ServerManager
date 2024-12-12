@@ -134,7 +134,7 @@ class tsunami(commands.Cog):
                 for area_name, alert_type in tsunami_alert_areas.items():
                     matched_region = match_region(area_name, geojson_names)
                     if matched_region:
-                        gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+                        gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "#FFFFFF")
                     else:
                         print(f"地域名が一致しませんでした: {area_name}")
 
