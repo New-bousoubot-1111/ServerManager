@@ -249,7 +249,7 @@ class tsunami(commands.Cog):
                     # 解除メッセージをEmbedとして作成
                     cancel_embed = Embed(
                         title="津波情報",
-                        description=f"{cancelled_time}頃に津波警報が解除されました。",
+                        description=f"{cancelled_time}頃に津波警報、注意報等が解除されました。",
                         color=0x00FF00  # 緑色
                     )
                     await tsunami_channel.send(embed=cancel_embed)
