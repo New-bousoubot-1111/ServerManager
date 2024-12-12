@@ -122,7 +122,7 @@ def create_embed(data):
         area_name = area["name"]
         first_height = area.get("firstHeight", {})
         maxHeight = area.get("maxHeight", {})
-        condition = first_height.get("condition")
+        condition = first_height.get("condition", "")
         description = maxHeight.get("description", "不明")
         arrival_time = first_height.get("arrivalTime", "不明")
 
