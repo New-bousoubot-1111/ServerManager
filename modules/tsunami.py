@@ -208,31 +208,42 @@ class tsunami(commands.Cog):
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
-
             for tsunami in filtered_tsunamis:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                     continue
-
                 embed = create_embed(tsunami)
                 tsunami_alert_areas = {
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
-
                 # 地図生成と埋め込み
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
                     file = File(map_path, filename="津波警報地図.png")
                     embed.set_image(url="attachment://津波警報地図.png")
-
                     # Embedと画像を送信
                     await tsunami_channel.send(embed=embed, file=file)
                 else:
                     # 地図がない場合はEmbedのみ送信
                     await tsunami_channel.send(embed=embed)
-
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
+
+            # 解除された津波警報
+            cancelled_tsunamis = [tsunami for tsunami in data if tsunami.get("cancelled")]
+            for cancelled_tsunami in cancelled_tsunamis:
+                cancelled_id = cancelled_tsunami.get("id")
+                if cancelled_id not in self.tsunami_sent_ids:
+                    cancel_embed = Embed(
+                        title="津波情報",
+                        description="津波警報が解除されました",
+                        color=0x00FF00
+                    )
+                    # 解除された津波情報を送信
+                    await tsunami_channel.send(embed=cancel_embed)
+                    self.tsunami_sent_ids.add(cancelled_id)
+                    self.save_tsunami_sent_ids()
+
         else:
             print("津波データの取得に失敗しました。")
 
