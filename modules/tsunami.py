@@ -173,31 +173,41 @@ class tsunami(commands.Cog):
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-            # 最新の津波データを取得
+            
             if not data:
                 print("津波データが空です。")
                 return
-
-            # 日付でソートし、最新のデータを取得
-            latest_tsunami = max(data, key=lambda x: parser.parse(x["time"]))
-            tsunami_id = latest_tsunami.get("id")
-            # すでに送信済みであればスキップ
-            if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
-                return
-            embed = create_embed(latest_tsunami)
-            tsunami_alert_areas = {
-                area["name"]: area.get("grade") for area in latest_tsunami.get("areas", [])
-            }
-            # 津波警報を送信
+            
+            # データを日付でフィルタリング
+            latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
+            filtered_tsunamis = [
+                tsunami for tsunami in data 
+                if parser.parse(tsunami["time"]).date() == latest_date
+            ]
+            
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
-            if tsunami_channel:
+            if not tsunami_channel:
+                print("送信先チャンネルが見つかりません。")
+                return
+
+            for tsunami in filtered_tsunamis:
+                tsunami_id = tsunami.get("id")
+                if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
+                    continue
+
+                embed = create_embed(tsunami)
+                tsunami_alert_areas = {
+                    area["name"]: area.get("grade") for area in tsunami.get("areas", [])
+                }
+
+                # 津波警報を送信
                 await tsunami_channel.send(embed=embed)
-            self.tsunami_sent_ids.add(tsunami_id)
-            self.save_tsunami_sent_ids()
-            # 地図生成と送信
-            if tsunami_alert_areas:
-                map_path = generate_map(tsunami_alert_areas)
-                if tsunami_channel:
+                self.tsunami_sent_ids.add(tsunami_id)
+                self.save_tsunami_sent_ids()
+
+                # 地図生成と送信
+                if tsunami_alert_areas:
+                    map_path = generate_map(tsunami_alert_areas)
                     file = File(map_path, filename="津波警報地図.png")
                     embed_map = Embed(
                         title="津波警報地図",
@@ -206,7 +216,6 @@ class tsunami(commands.Cog):
                     )
                     embed_map.set_image(url="attachment://津波警報地図.png")
                     await tsunami_channel.send(embed=embed_map, file=file)
-
         else:
             print("津波データの取得に失敗しました。")
 
