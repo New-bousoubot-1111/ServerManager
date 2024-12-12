@@ -80,18 +80,19 @@ REGION_MAPPING = {
 }
 
 def match_region(area_name, geojson_names):
+    """地域名をGeoJSONデータと一致させる"""
     if area_name in REGION_MAPPING:
         return REGION_MAPPING[area_name]
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
 def create_embed(data):
+    """Embedメッセージを作成"""
     alert_levels = {
-        "Advisory": {"title": "大津波警報", "color": 0x800080},
-        "Warning": {"title": "津波警報", "color": 0xff0000},
-        "Watch": {"title": "津波注意報", "color": 0xffff00}
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
-
     embed_title = "津波情報"
     embed_color = 0x767676
 
@@ -135,6 +136,7 @@ def create_embed(data):
     return embed
 
 def generate_map(tsunami_alert_areas):
+    """津波警報地図を生成"""
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"
 
@@ -162,6 +164,7 @@ class tsunami(commands.Cog):
         self.load_tsunami_sent_ids()
 
     def load_tsunami_sent_ids(self):
+        """送信済み津波IDを読み込む"""
         try:
             with open(self.tsunami_cache_file, "r") as f:
                 self.tsunami_sent_ids = set(json.load(f))
@@ -169,12 +172,13 @@ class tsunami(commands.Cog):
             self.tsunami_sent_ids = set()
 
     def save_tsunami_sent_ids(self):
+        """送信済み津波IDを保存"""
         with open(self.tsunami_cache_file, "w") as f:
             json.dump(list(self.tsunami_sent_ids), f)
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "|Tsunami       |" + Fore.RESET)
+        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
         print(Fore.BLUE + "|--------------|" + Fore.RESET)
         self.check_tsunami.start()
 
@@ -184,14 +188,13 @@ class tsunami(commands.Cog):
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-
             if not data:
                 print("津波データが空です。")
                 return
 
             latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
             filtered_tsunamis = [
-                tsunami for tsunami in data
+                tsunami for tsunami in data 
                 if parser.parse(tsunami["time"]).date() == latest_date
             ]
 
@@ -208,7 +211,6 @@ class tsunami(commands.Cog):
                 tsunami_alert_areas = {
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
-
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
                     file = File(map_path, filename="津波警報地図.png")
@@ -219,26 +221,29 @@ class tsunami(commands.Cog):
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
 
-            cancelled_tsunamis = [tsunami for tsunami in data if tsunami.get("cancelled")]
+            # 解除された津波警報
+            cancelled_tsunamis = [
+                tsunami for tsunami in data
+                if tsunami.get("cancelled") and parser.parse(tsunami["time"]).date() == latest_date
+            ]
             for cancelled_tsunami in cancelled_tsunamis:
                 cancelled_id = cancelled_tsunami.get("id")
-                if cancelled_id and cancelled_id not in self.tsunami_sent_ids:
-                    created_at = cancelled_tsunami.get("created_at")
-                    if created_at:
-                        try:
-                            created_time = parser.parse(created_at).strftime('%H時%M分')
-                        except ValueError:
-                            created_time = "不明"
+                if cancelled_id not in self.tsunami_sent_ids:
+                    try:
+                        created_at = parser.parse(cancelled_tsunami.get("created_at", "不明"))
+                        cancelled_time = created_at.strftime('%Y年%m月%d日 %H時%M分')
+                    except Exception as e:
+                        print(f"時刻のパースに失敗: {e}")
+                        cancelled_time = "不明"
 
-                        cancel_embed = Embed(
-                            title="津波情報",
-                            description=f"{created_time}頃に津波警報が解除されました",
-                            color=0x00FF00
-                        )
-                        await tsunami_channel.send(embed=cancel_embed)
-
-                        self.tsunami_sent_ids.add(cancelled_id)
-                        self.save_tsunami_sent_ids()
+                    cancel_embed = Embed(
+                        title="津波情報",
+                        description=f"{cancelled_time}頃に津波警報が解除されました",
+                        color=0x00FF00
+                    )
+                    await tsunami_channel.send(embed=cancel_embed)
+                    self.tsunami_sent_ids.add(cancelled_id)
+                    self.save_tsunami_sent_ids()
         else:
             print("津波データの取得に失敗しました。")
 
