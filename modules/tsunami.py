@@ -173,16 +173,20 @@ class tsunami(commands.Cog):
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-
-            # 最新の津波情報を取得
             latest_tsunami = max(data, key=lambda x: parser.parse(x["time"]))
             tsunami_id = latest_tsunami.get("id")
+            tsunami_alert_areas = {}
 
-            if tsunami_id and tsunami_id not in self.tsunami_sent_ids:
-                embed = create_embed(latest_tsunami)
-                tsunami_alert_areas = {
-                    area["name"]: area.get("grade") for area in latest_tsunami.get("areas", [])
-                }
+            for tsunami in data:
+                tsunami_id = tsunami.get("id")
+                if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
+                    continue
+
+                embed = create_embed(tsunami)
+                for area in tsunami.get("areas", []):
+                    area_name = area["name"]
+                    alert_type = area.get("grade")
+                    tsunami_alert_areas[area_name] = alert_type
 
                 # 津波警報を送信
                 tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
@@ -191,18 +195,19 @@ class tsunami(commands.Cog):
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
 
-                # 地図生成と送信
-                if tsunami_alert_areas:
-                    map_path = generate_map(tsunami_alert_areas)
-                    if tsunami_channel:
-                        file = File(map_path, filename="津波警報地図.png")
-                        embed_map = Embed(
-                            title="津波警報地図",
-                            description="津波警報が発表されている地域の地図です。",
-                            color=0xFF0000
-                        )
-                        embed_map.set_image(url="attachment://津波警報地図.png")
-                        await tsunami_channel.send(embed=embed_map, file=file)
+            # 地図生成と送信
+            if tsunami_alert_areas:
+                map_path = generate_map(tsunami_alert_areas)
+                tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+                if tsunami_channel:
+                    file = File(map_path, filename="津波警報地図.png")
+                    embed_map = Embed(
+                        title="津波警報地図",
+                        description="津波警報が発表されている地域の地図です。",
+                        color=0xFF0000
+                    )
+                    embed_map.set_image(url="attachment://津波警報地図.png")
+                    await tsunami_channel.send(embed=embed_map, file=file)
 
         else:
             print("津波データの取得に失敗しました。")
