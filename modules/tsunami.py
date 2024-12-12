@@ -140,7 +140,14 @@ def create_embed(data):
                 value=f"予想高さ: {description}\n{condition}",
                 inline=False
             )
-
+    
+    # 地域が不明の場合も、情報として「不明地域」として表示
+    if not data.get("areas"):
+        embed.add_field(
+            name="地域情報",
+            value="地域情報が不明です。詳細が提供されるまで、避難場所の確認を行ってください。",
+            inline=False
+        )
     return embed
 
 def generate_map(tsunami_alert_areas):
