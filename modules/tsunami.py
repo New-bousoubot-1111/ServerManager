@@ -106,14 +106,16 @@ def create_embed(data):
 
     embed = Embed(
         title=embed_title,
-        description=f"{embed_title}が発表されました\n安全な場所に避難してください",
         color=embed_color
     )
 
     tsunami_time = parser.parse(data.get("time", "不明"))
     formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
-    embed.add_field(name="発表時刻", value=formatted_time, inline=False)
 
+    # 地域が不明でない場合にのみ、津波発表の説明を追加
+    if data.get("areas"):
+        embed.description = f"{embed_title}が発表されました\n発表時刻\n{formatted_time}"
+    
     # 地域ごとの情報を追加
     for area in data.get("areas", []):
         area_name = area["name"]
@@ -141,13 +143,14 @@ def create_embed(data):
                 inline=False
             )
     
-    # 地域が不明の場合も、情報として「不明地域」として表示
+    # 地域が不明の場合、地域情報がない旨を追加
     if not data.get("areas"):
         embed.add_field(
-            name="地域情報",
-            value="地域情報が不明です。詳細が提供されるまで、避難場所の確認を行ってください。",
+            name="津波情報",
+            value=f"{formatted_time}頃に津波警報、注意報等が解除されました",
             inline=False
         )
+
     return embed
 
 def generate_map(tsunami_alert_areas):
@@ -244,32 +247,8 @@ class tsunami(commands.Cog):
                     await tsunami_channel.send(embed=embed)
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
-
-            # 解除された津波警報
-            for tsunami in data:
-                cancelled = tsunami.get("cancelled", False)
-                tsunami_id = tsunami.get("id")
-
-                # 解除された津波警報を確認
-                if cancelled and tsunami_id not in self.tsunami_sent_ids:
-                    # 解除の発表時刻を取得
-                    created_at = parser.parse(tsunami.get("created_at", "不明"))
-                    cancelled_time = created_at.strftime('%H時%M分')  # 日付を含めたフォーマット
-
-                    # 解除メッセージをEmbedとして作成
-                    cancel_embed = Embed(
-                        title="津波情報",
-                        description=f"{cancelled_time}頃に津波警報、注意報等が解除されました。",
-                        color=0x00FF00  # 緑色
-                    )
-                    await tsunami_channel.send(embed=cancel_embed)
-
-                    # 送信済みリストに追加
-                    self.tsunami_sent_ids.add(tsunami_id)
-                    self.save_tsunami_sent_ids()
-
-        else:
-            print("津波データの取得に失敗しました。")
+            else:
+                print("津波データの取得に失敗しました。")
 
 def setup(bot):
     bot.add_cog(tsunami(bot))
