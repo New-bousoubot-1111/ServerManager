@@ -114,8 +114,12 @@ def create_embed(data):
 
     # 地域が不明でない場合にのみ、津波発表の説明を追加
     if data.get("areas"):
-        embed.description = f"{embed_title}が発表されました\n発表時刻\n{formatted_time}"
-    
+        embed.description = f"{embed_title}が発表されました"
+        embed.add_field(
+                    name="発表時刻",
+                    value=formatted_time,
+                    inline=False
+        )
     # 地域ごとの情報を追加
     for area in data.get("areas", []):
         area_name = area["name"]
@@ -146,7 +150,7 @@ def create_embed(data):
     # 地域が不明の場合、地域情報がない旨を追加
     if not data.get("areas"):
         embed.add_field(
-            name="津波情報",
+            name="",
             value=f"{formatted_time}頃に津波警報、注意報等が解除されました",
             inline=False
         )
