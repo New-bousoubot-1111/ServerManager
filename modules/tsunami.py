@@ -229,24 +229,27 @@ class tsunami(commands.Cog):
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
 
-            # 解除された津波警報（cancelledがTrueの場合）
-            cancelled_tsunamis = [
-                tsunami for tsunami in data
-                if tsunami.get("cancelled") and parser.parse(tsunami["time"]).date() == latest_date
-            ]
+            # 解除された津波警報
+            cancelled_tsunamis = [tsunami for tsunami in data if tsunami.get("cancelled")]
             for cancelled_tsunami in cancelled_tsunamis:
                 cancelled_id = cancelled_tsunami.get("id")
                 if cancelled_id not in self.tsunami_sent_ids:
-                    created_at = parser.parse(cancelled_tsunami.get("created_at", "不明"))
-                    cancelled_time = created_at.strftime('%H時%M分')
-                    cancel_embed = Embed(
-                        title="津波情報",
-                        description=f"{cancelled_time}頃に津波警報が解除されました",
-                        color=0x00FF00
-                    )
-                    await tsunami_channel.send(embed=cancel_embed)
-                    self.tsunami_sent_ids.add(cancelled_id)
-                    self.save_tsunami_sent_ids()
+                    if cancelled_tsunami.get("cancelled"):
+                        # 解除された津波の発表時刻を取得
+                        created_at = parser.parse(cancelled_tsunami.get("created_at", "不明"))
+                        cancelled_time = created_at.strftime('%H時%M分')  # 発表時刻を表示
+
+                        # 解除メッセージをEmbedとして送信
+                        cancel_embed = Embed(
+                            title="津波情報",
+                            description=f"{cancelled_time}頃に津波警報が解除されました",
+                            color=0x00FF00  # 解除された場合は緑色
+                        )
+                        await tsunami_channel.send(embed=cancel_embed)
+                        
+                        # 送信済みIDに追加して、再送信を防止
+                        self.tsunami_sent_ids.add(cancelled_id)
+                        self.save_tsunami_sent_ids()
 
         else:
             print("津波データの取得に失敗しました。")
