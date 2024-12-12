@@ -107,8 +107,8 @@ def create_embed(data):
 
     # Embedを作成
     embed = Embed(
-        title=embed_title,
-        description="津波警報が発表されました。安全な場所に避難してください。",
+        title=f"{embed_title}が発表されました",
+        description="安全な場所に避難してください。",
         color=0xff0000
     )
 
