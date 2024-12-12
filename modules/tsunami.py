@@ -210,6 +210,9 @@ class tsunami(commands.Cog):
                 if parser.parse(tsunami["time"]).date() == latest_date
             ]
             
+            # 日付順に並べ替え（古い順）
+            filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
+
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
