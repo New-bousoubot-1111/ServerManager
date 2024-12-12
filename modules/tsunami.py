@@ -200,22 +200,20 @@ class tsunami(commands.Cog):
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
 
-                # 津波警報を送信
-                await tsunami_channel.send(embed=embed)
-                self.tsunami_sent_ids.add(tsunami_id)
-                self.save_tsunami_sent_ids()
-
-                # 地図生成と送信
+                # 地図生成と埋め込み
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
                     file = File(map_path, filename="津波警報地図.png")
-                    embed_map = Embed(
-                        title="津波警報地図",
-                        description="津波警報が発表されている地域の地図です。",
-                        color=0xFF0000
-                    )
-                    embed_map.set_image(url="attachment://津波警報地図.png")
-                    await tsunami_channel.send(embed=embed_map, file=file)
+                    embed.set_image(url="attachment://津波警報地図.png")
+
+                    # Embedと画像を送信
+                    await tsunami_channel.send(embed=embed, file=file)
+                else:
+                    # 地図がない場合はEmbedのみ送信
+                    await tsunami_channel.send(embed=embed)
+
+                self.tsunami_sent_ids.add(tsunami_id)
+                self.save_tsunami_sent_ids()
         else:
             print("津波データの取得に失敗しました。")
 
