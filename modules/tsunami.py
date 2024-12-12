@@ -188,21 +188,23 @@ class tsunami(commands.Cog):
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
+            
             if not data:
                 print("津波データが空です。")
                 return
-
+            
+            # データを日付でフィルタリング
             latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
             filtered_tsunamis = [
                 tsunami for tsunami in data 
                 if parser.parse(tsunami["time"]).date() == latest_date
             ]
-
+            
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
-
+            
             for tsunami in filtered_tsunamis:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
@@ -211,39 +213,45 @@ class tsunami(commands.Cog):
                 tsunami_alert_areas = {
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
+                # 地図生成と埋め込み
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
                     file = File(map_path, filename="津波警報地図.png")
                     embed.set_image(url="attachment://津波警報地図.png")
+                    # Embedと画像を送信
                     await tsunami_channel.send(embed=embed, file=file)
                 else:
+                    # 地図がない場合はEmbedのみ送信
                     await tsunami_channel.send(embed=embed)
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
 
-            # 解除された津波警報
+            # 解除された津波警報の中で最新のものを取得
             cancelled_tsunamis = [
-                tsunami for tsunami in data
-                if tsunami.get("cancelled") and parser.parse(tsunami["time"]).date() == latest_date
+                tsunami for tsunami in data if tsunami.get("cancelled")
             ]
-            for cancelled_tsunami in cancelled_tsunamis:
-                cancelled_id = cancelled_tsunami.get("id")
+            if cancelled_tsunamis:
+                latest_cancelled_tsunami = max(
+                    cancelled_tsunamis, key=lambda x: parser.parse(x.get("time", "1970-01-01T00:00:00"))
+                )
+                cancelled_id = latest_cancelled_tsunami.get("id")
                 if cancelled_id not in self.tsunami_sent_ids:
-                    try:
-                        created_at = parser.parse(cancelled_tsunami.get("created_at", "不明"))
-                        cancelled_time = created_at.strftime('%Y年%m月%d日 %H時%M分')
-                    except Exception as e:
-                        print(f"時刻のパースに失敗: {e}")
-                        cancelled_time = "不明"
+                    # 解除された津波の発表時刻を取得
+                    created_at = parser.parse(latest_cancelled_tsunami.get("created_at", "不明"))
+                    cancelled_time = created_at.strftime('%H時%M分')  # 発表時刻を表示
 
+                    # 解除メッセージをEmbedとして送信
                     cancel_embed = Embed(
                         title="津波情報",
                         description=f"{cancelled_time}頃に津波警報が解除されました",
-                        color=0x00FF00
+                        color=0x00FF00  # 解除された場合は緑色
                     )
                     await tsunami_channel.send(embed=cancel_embed)
+                    
+                    # 送信済みIDに追加して、再送信を防止
                     self.tsunami_sent_ids.add(cancelled_id)
                     self.save_tsunami_sent_ids()
+
         else:
             print("津波データの取得に失敗しました。")
 
