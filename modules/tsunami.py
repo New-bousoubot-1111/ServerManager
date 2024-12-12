@@ -87,32 +87,29 @@ def match_region(area_name, geojson_names):
     return best_match if score >= 80 else None
 
 def create_embed(data):
-    """津波警報のEmbedを作成"""
-    # 津波レベルを収集
     alert_levels = {
-        "Advisory": "大津波警報",
-        "Warning": "津波警報",
-        "Watch": "津波注意報"
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
-
     # デフォルトタイトル（全レベルが不明の場合）
     embed_title = "津波情報"
+    embed_color = 0x767676
 
     # 地域のレベルを収集して最も深刻なレベルを判断
     levels_in_data = [area.get("grade") for area in data.get("areas", [])]
     for level in ["Advisory", "Warning", "Watch"]:
         if level in levels_in_data:
-            embed_title = alert_levels[level]
+            embed_title = alert_levels[level]["title"]
+            embed_color = alert_levels[level]["color"]
             break
 
-    # Embedを作成
     embed = Embed(
-        title=f"{embed_title}が発表されました",
-        description="安全な場所に避難してください。",
-        color=0xff0000
+        title=embed_title,
+        description=f"{embed_title}が発表されました\n安全な場所に避難してください",
+        color=embed_color
     )
 
-    # 発表時刻のフォーマット
     tsunami_time = parser.parse(data.get("time", "不明"))
     formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
     embed.add_field(name="発表時刻", value=formatted_time, inline=False)
