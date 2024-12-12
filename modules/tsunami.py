@@ -89,8 +89,8 @@ class tsunami(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.tsunami_sent_ids = set()
+        self.tsunami_cache_file = 'json/tsunami_id.json'  # 定義が抜けていたので追加
         self.load_tsunami_sent_ids()
-        self.tsunami_cache_file = 'json/tsunami_id.json'
 
     def load_tsunami_sent_ids(self):
         try:
