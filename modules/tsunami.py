@@ -231,7 +231,7 @@ class tsunami(commands.Cog):
 
             # 解除された津波警報
             for tsunami in data:
-                cancelled = tsunami.get("cancelled", False)
+                cancelled = tsunami.get("cancelled", True)
                 tsunami_id = tsunami.get("id")
 
                 # 解除された津波警報を確認
