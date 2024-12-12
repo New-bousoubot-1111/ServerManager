@@ -79,14 +79,6 @@ REGION_MAPPING = {
     "宮古島・八重山地方": "Okinawa Ken"
 }
 
-def get_latest_tsunami_data(tsunami_data):
-    """最新の日付の津波情報を取得"""
-    if not tsunami_data:
-        return None
-    # 最新のtimeでソートして最初の要素を返す
-    latest_tsunami = max(tsunami_data, key=lambda x: parser.parse(x["time"]))
-    return latest_tsunami
-
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
     if area_name in REGION_MAPPING:
@@ -181,31 +173,30 @@ class tsunami(commands.Cog):
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-            tsunami_alert_areas = {}
-            latest_tsunami = get_latest_tsunami_data(data)
-        if not latest_tsunami:
-            print("最新の津波情報を取得できませんでした。")
-            return
-            for tsunami in data:
-                tsunami_id = tsunami.get("id")
-                if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
-                    continue
+            # 最新の津波データを取得
+            if not data:
+                print("津波データが空です。")
+                return
 
-                embed = create_embed(tsunami)
-                for area in tsunami.get("areas", []):
-                    area_name = area["name"]
-                    alert_type = area.get("grade")
-                    tsunami_alert_areas[area_name] = alert_type
-                # 津波警報を送信
-                tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
-                if tsunami_channel:
-                    await tsunami_channel.send(embed=embed)
-                self.tsunami_sent_ids.add(tsunami_id)
-                self.save_tsunami_sent_ids()
+            # 日付でソートし、最新のデータを取得
+            latest_tsunami = max(data, key=lambda x: parser.parse(x["time"]))
+            tsunami_id = latest_tsunami.get("id")
+            # すでに送信済みであればスキップ
+            if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
+                return
+            embed = create_embed(latest_tsunami)
+            tsunami_alert_areas = {
+                area["name"]: area.get("grade") for area in latest_tsunami.get("areas", [])
+            }
+            # 津波警報を送信
+            tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
+            if tsunami_channel:
+                await tsunami_channel.send(embed=embed)
+            self.tsunami_sent_ids.add(tsunami_id)
+            self.save_tsunami_sent_ids()
             # 地図生成と送信
             if tsunami_alert_areas:
                 map_path = generate_map(tsunami_alert_areas)
-                tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
                 if tsunami_channel:
                     file = File(map_path, filename="津波警報地図.png")
                     embed_map = Embed(
@@ -215,6 +206,7 @@ class tsunami(commands.Cog):
                     )
                     embed_map.set_image(url="attachment://津波警報地図.png")
                     await tsunami_channel.send(embed=embed_map, file=file)
+
         else:
             print("津波データの取得に失敗しました。")
 
