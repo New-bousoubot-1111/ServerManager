@@ -239,7 +239,7 @@ class tsunami(commands.Cog):
                     cancelled_time = created_at.strftime('%H時%M分')
                     cancel_embed = Embed(
                         title="津波情報",
-                        description=f"{cancelled_time}頃に津波警報が解除されました",
+                        description="津波警報が解除されました",
                         color=0x00FF00
                     )
                     if data.get("cancelled"):
