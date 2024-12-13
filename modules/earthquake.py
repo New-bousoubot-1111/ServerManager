@@ -90,7 +90,7 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/{now}.json")
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241213113910.json")
         if res.status_code == 200:
             data = res.json()
             cache = await self.get_cache("cache") or {}
@@ -123,7 +123,7 @@ class earthquake(commands.Cog):
                             start_text = ""
 
                     if data['alertflg'] == "警報":
-                        start_text = "<@&1192026173924970518>\n**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
+                        start_text = "**誤報を含む情報の可能性があります。\n今後の情報に注意してください**\n"
                         if not data['is_final']:
                             title = f"緊急地震速報 第{data['report_num']}報(警報)"
                             color2 = 0xff0000  # レッド
@@ -141,6 +141,10 @@ class earthquake(commands.Cog):
                                     f"マグニチュードは**{data['magunitude']}**と推定されます。",
                         color=color2
                     )
+                    if image:
+                    image_url = await util.eew_image(eew_channel)
+                    if image_url:
+                        embed.set_image(url=image_url)
                     await eew_channel.send(embed=embed)
 
                     if data['report_num'] == "1":
