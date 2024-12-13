@@ -106,7 +106,12 @@ def generate_map(tsunami_alert_areas):
     ax.set_facecolor("#2a2a2a")
     ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
     ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+    # 都道府県の境界線を黒色で、その他（市町村）の境界線を薄い黒色で描画
+    for _, region in gdf.iterrows():
+        if '県' in region[GEOJSON_REGION_FIELD] or '府' in region[GEOJSON_REGION_FIELD]:
+            gdf.loc[gdf.index == region.name].plot(ax=ax, color=region["color"], edgecolor="black", linewidth=0.5)  # 都道府県
+        else:
+            gdf.loc[gdf.index == region.name].plot(ax=ax, color=region["color"], edgecolor="#A9A9A9", linewidth=0.3)  # 市町村
     ax.set_axis_off()
 
     output_path = "images/tsunami.png"
