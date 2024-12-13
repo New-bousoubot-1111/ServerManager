@@ -152,7 +152,6 @@ class earthquake(commands.Cog):
                         image = True
                     if image:
                         await util.eew_image(eew_channel)
-
                 await self.set_cache("cache", data)
 
     #地震情報
