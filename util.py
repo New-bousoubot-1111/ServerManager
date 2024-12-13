@@ -146,5 +146,5 @@ async def eew_image(eew_channel):
   except:
     pass
   img.save('images/kmoni.png')
-  await eew_channel.send(file=nextcord.File('images/kmoni.png'))
-  return
+  sent_message = await eew_channel.send(file=nextcord.File('images/kmoni.png'))
+  return sent_message.attachments[0].url
