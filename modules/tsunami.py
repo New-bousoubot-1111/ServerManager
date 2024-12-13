@@ -92,9 +92,9 @@ def create_embed(data):
         "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
         "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
-
     embed_title = "津波情報"
     embed_color = 0x00FF00
+
     levels_in_data = [area.get("grade") for area in data.get("areas", [])]
     for level in ["Advisory", "Warning", "Watch"]:
         if level in levels_in_data:
@@ -141,44 +141,27 @@ def create_embed(data):
             value="念のため、今後の情報に気をつけてください。",
             inline=False
         )
-
     return embed
 
-def generate_map_with_scaled_islands(tsunami_alert_areas):
-    """津波警報地図を生成し、離島を全体的に拡大して表示"""
+def generate_map(tsunami_alert_areas):
+    """津波警報地図を生成し、ローカルパスを返す"""
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
-    # 津波警報地域の色を変更
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
             gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-    # 離島の位置を拡大するための倍率
-    scale_factor = 2.5
-
-    # 離島の名前リスト
-    islands = ["Okinawa", "Ogasawara", "Amami", "Miyako", "Yaeyama"]
-    for island in islands:
-        # 離島のデータを抽出
-        island_gdf = gdf[gdf[GEOJSON_REGION_FIELD].str.contains(island, case=False, na=False)]
-        if not island_gdf.empty:
-            # 離島の位置を拡大（倍率適用）
-            island_gdf = island_gdf.scale(scale_factor, scale_factor, origin=(135, 35))  # 基準点を設定
-            gdf.update(island_gdf)
-
-    # 地図の描画
-    fig, ax = plt.subplots(figsize=(12, 15))
+    fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
-    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-    ax.set_ylim([20, 46])  # 北緯20度～46度（南西諸島から北海道まで）
+    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
-    # 保存
-    output_path = "images/tsunami_scaled_islands.png"
+    output_path = "images/tsunami.png"
     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
     plt.close()
     return output_path
@@ -216,16 +199,19 @@ class tsunami(commands.Cog):
             if not data:
                 print("津波データが空です。")
                 return
+
             latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
             filtered_tsunamis = [
                 tsunami for tsunami in data
                 if parser.parse(tsunami["time"]).date() == latest_date
             ]
             filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
+
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
+
             for tsunami in filtered_tsunamis:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
@@ -234,14 +220,16 @@ class tsunami(commands.Cog):
                 tsunami_alert_areas = {
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
+
                 if tsunami_alert_areas:
-                    map_path = generate_map_with_scaled_islands(tsunami_alert_areas)
-                    embed.set_image(url="attachment://tsunami_scaled_islands.png")
+                    map_path = generate_map(tsunami_alert_areas)
+                    embed.set_image(url="attachment://tsunami.png")
                     with open(map_path, "rb") as file:
-                        discord_file = File(file, filename="tsunami_scaled_islands.png")
+                        discord_file = File(file, filename="tsunami.png")
                         await tsunami_channel.send(embed=embed, file=discord_file)
                 else:
                     await tsunami_channel.send(embed=embed)
+
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
 
