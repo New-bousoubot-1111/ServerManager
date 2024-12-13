@@ -36,6 +36,15 @@ class earthquake(commands.Cog):
                 )
             """)
 
+        # 初回起動時にeew_id用のテーブル作成
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS eew_id (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                )
+            """)
+
     async def get_cache(self, key):
         """キャッシュからデータを取得"""
         async with self.pool.acquire() as conn:
@@ -51,7 +60,23 @@ class earthquake(commands.Cog):
                 ON CONFLICT (key)
                 DO UPDATE SET value = EXCLUDED.value
             """, key, json.dumps(value))
-            
+
+    async def get_eew_id(self):
+        """PostgreSQLからeew_idを取得"""
+        async with self.pool.acquire() as conn:
+            result = await conn.fetchrow("SELECT value FROM eew_id WHERE key = $1", "eew_id")
+            return result['value'] if result else None
+
+    async def set_eew_id(self, eew_id):
+        """PostgreSQLにeew_idを保存"""
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO eew_id (key, value)
+                VALUES ($1, $2)
+                ON CONFLICT (key)
+                DO UPDATE SET value = EXCLUDED.value
+            """, "eew_id", eew_id)
+
     def safe_parse_time(time_str, default="不明"):
         try:
             dt = parser.parse(time_str)
@@ -133,8 +158,7 @@ class earthquake(commands.Cog):
     #地震情報
     @tasks.loop(seconds=2)
     async def eew_info(self):
-        with open('json/id.json', 'r') as f:
-            id = json.load(f)['eew_id']
+        eew_id = await self.get_eew_id()
         data = requests.get(f'https://api.p2pquake.net/v2/history?codes=551&limit=1').json()[0]["points"]
         if data[0]["isArea"] is False:
             isArea = "この地震による津波の心配はありません" if not data[0]["isArea"] else "この地震で津波が発生する可能性があります\n今後の情報に注意してください"
@@ -143,7 +167,7 @@ class earthquake(commands.Cog):
         data = response['earthquake']
         hypocenter = data['hypocenter']
         if request.status_code == 200:
-            if id != response['id']:
+            if eew_id != response['id']:
                 # 震度に応じた色の設定
                 max_scale = round(data['maxScale'] / 10)
                 if max_scale == 1:
@@ -181,11 +205,9 @@ class earthquake(commands.Cog):
                 embed.set_footer(text=current_time)
                 eew_channel = self.bot.get_channel(int(config['eew_channel']))
                 await eew_channel.send(embed=embed)
-                with open('json/id.json', 'r') as f:
-                    id = json.load(f)
-                    id['eew_id'] = response['id']
-                with open('json/id.json', 'w') as f:
-                    json.dump(id, f, indent=2)
+                
+                # Update eew_id in PostgreSQL
+                await self.set_eew_id(response['id'])
             else:
                 return
 
