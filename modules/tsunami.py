@@ -156,6 +156,8 @@ def generate_map(tsunami_alert_areas):
     fig, ax = plt.subplots(figsize=(10, 12))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
+    ax.set_xlim([120, 155])  # 東経120度～155度
+    ax.set_ylim([20, 50])    # 北緯20度～50度
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
