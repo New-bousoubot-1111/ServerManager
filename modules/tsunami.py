@@ -92,11 +92,9 @@ def create_embed(data):
         "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
         "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
-    # デフォルトタイトル（全レベルが不明の場合）
     embed_title = "津波情報"
     embed_color = 0x00FF00
 
-    # 地域のレベルを収集して最も深刻なレベルを判断
     levels_in_data = [area.get("grade") for area in data.get("areas", [])]
     for level in ["Advisory", "Warning", "Watch"]:
         if level in levels_in_data:
@@ -104,23 +102,14 @@ def create_embed(data):
             embed_color = alert_levels[level]["color"]
             break
 
-    embed = Embed(
-        title=embed_title,
-        color=embed_color
-    )
-
+    embed = Embed(title=embed_title, color=embed_color)
     tsunami_time = parser.parse(data.get("time", "不明"))
     formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
 
-    # 地域が不明でない場合にのみ、津波発表の説明を追加
     if data.get("areas"):
         embed.description = f"{embed_title}が発表されました\n安全な場所に避難してください"
-        embed.add_field(
-                    name="発表時刻",
-                    value=formatted_time,
-                    inline=False
-        )
-    # 地域ごとの情報を追加
+        embed.add_field(name="発表時刻", value=formatted_time, inline=False)
+
     for area in data.get("areas", []):
         area_name = area["name"]
         first_height = area.get("firstHeight", {})
@@ -138,8 +127,7 @@ def create_embed(data):
                     inline=False
                 )
             except ValueError:
-                pass  # 到達予想時刻が不正の場合は追加しない
-
+                pass
         elif arrival_time == "不明":
             embed.add_field(
                 name=area_name,
@@ -147,20 +135,16 @@ def create_embed(data):
                 inline=False
             )
 
-    tsunami_time2 = parser.parse(data.get("time", "不明"))
-    formatted_time2 = tsunami_time2.strftime('%H時%M分')
-    # 地域が不明の場合、地域情報がない旨を追加
     if not data.get("areas"):
         embed.add_field(
-            name=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
+            name=f"{formatted_time}頃に津波警報、注意報等が解除されました。",
             value="念のため、今後の情報に気をつけてください。",
             inline=False
         )
-
     return embed
 
 def generate_map(tsunami_alert_areas):
-    """津波警報地図を生成"""
+    """津波警報地図を生成し、ローカルパスを返す"""
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
@@ -169,15 +153,13 @@ def generate_map(tsunami_alert_areas):
         if matched_region:
             gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-    # 地図の描画
     fig, ax = plt.subplots(figsize=(10, 12))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
-    # 地図の保存
-    output_path = "./images/colored_map.png"
+    output_path = "images/tsunami.png"
     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
     plt.close()
     return output_path
@@ -190,7 +172,6 @@ class tsunami(commands.Cog):
         self.load_tsunami_sent_ids()
 
     def load_tsunami_sent_ids(self):
-        """送信済み津波IDを読み込む"""
         try:
             with open(self.tsunami_cache_file, "r") as f:
                 self.tsunami_sent_ids = set(json.load(f))
@@ -198,7 +179,6 @@ class tsunami(commands.Cog):
             self.tsunami_sent_ids = set()
 
     def save_tsunami_sent_ids(self):
-        """送信済み津波IDを保存"""
         with open(self.tsunami_cache_file, "w") as f:
             json.dump(list(self.tsunami_sent_ids), f)
 
@@ -214,25 +194,22 @@ class tsunami(commands.Cog):
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-            
             if not data:
                 print("津波データが空です。")
                 return
-            
-            # データを日付でフィルタリング
+
             latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
             filtered_tsunamis = [
-                tsunami for tsunami in data 
+                tsunami for tsunami in data
                 if parser.parse(tsunami["time"]).date() == latest_date
             ]
-            
-            # 日付順に並べ替え（古い順）
             filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
 
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
+
             for tsunami in filtered_tsunamis:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
@@ -241,20 +218,18 @@ class tsunami(commands.Cog):
                 tsunami_alert_areas = {
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
-                # 地図生成と埋め込み
+
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
-                    file = File(map_path, filename="津波警報地図.png")
-                    embed.set_image(url="attachment://津波警報地図.png")
-                    # Embedと画像を送信
-                    await tsunami_channel.send(embed=embed, file=file)
+                    embed.set_image(url="attachment://tsunami.png")
+                    with open(map_path, "rb") as file:
+                        discord_file = File(file, filename="tsunami.png")
+                        await tsunami_channel.send(embed=embed, file=discord_file)
                 else:
-                    # 地図がない場合はEmbedのみ送信
                     await tsunami_channel.send(embed=embed)
+
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
-            else:
-                print("津波データの取得に失敗しました。")
 
 def setup(bot):
     bot.add_cog(tsunami(bot))
