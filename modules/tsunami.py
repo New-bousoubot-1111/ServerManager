@@ -14,9 +14,10 @@ from dateutil import parser
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
+# 警報の色設定
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan.geojson"
-GEOJSON_REGION_FIELD = 'nam_ja'  # nam_jaに変更
+GEOJSON_PATH = "./images/japan_map.json"  # GeoJSONファイルのパス
+GEOJSON_REGION_FIELD = 'N03_003'  # 市町村名を利用
 
 # GeoJSONデータの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
@@ -27,6 +28,7 @@ def match_region(area_name, geojson_names):
     return best_match if score >= 80 else None
 
 def create_embed(data):
+    """津波警報情報のEmbedを作成"""
     alert_levels = {
         "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
         "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
@@ -85,7 +87,7 @@ def create_embed(data):
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()  # 'nam_ja'に変更
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()  # 市町村名をリスト化
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     for area_name, alert_type in tsunami_alert_areas.items():
