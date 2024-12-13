@@ -122,6 +122,7 @@ class earthquake(commands.Cog):
                                     f"マグニチュードは**{data['magunitude']}**と推定されます。",
                         color=color2
                     )
+                    await eew_channel.send(embed=embed)
                     if data['report_num'] == "1":
                         image = True
                     if image:
