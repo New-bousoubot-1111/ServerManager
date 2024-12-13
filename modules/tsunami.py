@@ -153,7 +153,7 @@ def generate_map(tsunami_alert_areas):
         if matched_region:
             gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-    fig, ax = plt.subplots(figsize=(10, 12))
+    fig, ax = plt.subplots(figsize=(12, 16))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
     ax.set_xlim([120, 155])  # 東経120度～155度
