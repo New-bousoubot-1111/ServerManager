@@ -147,6 +147,14 @@ class tsunami(commands.Cog):
             if not data:
                 print("津波データが空です。")
                 return
+
+            latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
+            filtered_tsunamis = [
+                tsunami for tsunami in data
+                if parser.parse(tsunami["time"]).date() == latest_date
+            ]
+            filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
+
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
