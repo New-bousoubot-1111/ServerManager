@@ -17,7 +17,7 @@ with open('json/config.json', 'r') as f:
 # 警報の色設定
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan_map.json"  # GeoJSONファイルのパス
-GEOJSON_REGION_FIELD = 'N03_003'  # 市町村名を利用
+GEOJSON_REGION_FIELD = 'N03_004'  # 市町村名を利用
 
 # GeoJSONデータの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
