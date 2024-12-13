@@ -87,7 +87,7 @@ def create_embed(data):
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()  # 市町村名をリスト化
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()  # 都道府県名
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     for area_name, alert_type in tsunami_alert_areas.items():
@@ -101,17 +101,20 @@ def generate_map(tsunami_alert_areas):
             print(f"地域: {area_name}, 警報レベル: {alert_type}, 色: {alert_color}")  # 警報レベルと色を出力
             gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = alert_color
 
+    # 地図の描画
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
     ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
     ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+
     # 都道府県の境界線を黒色で、その他（市町村）の境界線を薄い黒色で描画
     for _, region in gdf.iterrows():
         if '県' in region[GEOJSON_REGION_FIELD] or '府' in region[GEOJSON_REGION_FIELD]:
             gdf.loc[gdf.index == region.name].plot(ax=ax, color=region["color"], edgecolor="black", linewidth=0.5)  # 都道府県
         else:
             gdf.loc[gdf.index == region.name].plot(ax=ax, color=region["color"], edgecolor="#A9A9A9", linewidth=0.3)  # 市町村
+
     ax.set_axis_off()
 
     output_path = "images/tsunami.png"
