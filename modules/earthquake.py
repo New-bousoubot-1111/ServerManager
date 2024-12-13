@@ -22,25 +22,6 @@ class earthquake(commands.Cog):
         self.bot = bot
         self.id = None
         self.pool = None
-        self.tsunami_sent_ids = set()
-        self.tsunami_cache_file = 'json/tsunami_id.json'
-
-        # 再起動時に送信済みIDを復元
-        self.load_tsunami_sent_ids()
-
-    def load_tsunami_sent_ids(self):
-        """送信済み津波IDをファイルから読み込む"""
-        if os.path.exists(self.tsunami_cache_file):
-            with open(self.tsunami_cache_file, 'r') as f:
-                try:
-                    self.tsunami_sent_ids = set(json.load(f))
-                except json.JSONDecodeError:
-                    self.tsunami_sent_ids = set()
-
-    def save_tsunami_sent_ids(self):
-        """送信済み津波IDをファイルに保存する"""
-        with open(self.tsunami_cache_file, 'w') as f:
-            json.dump(list(self.tsunami_sent_ids), f)
 
     async def setup_db(self):
         """PostgreSQLとの接続プールを作成します"""
@@ -141,12 +122,6 @@ class earthquake(commands.Cog):
                                     f"マグニチュードは**{data['magunitude']}**と推定されます。",
                         color=color2
                     )
-                    if image:
-                       image_url = await util.eew_image(eew_channel)
-                       if image_url:
-                           embed.set_image(url=image_url)
-                    await eew_channel.send(embed=embed)
-
                     if data['report_num'] == "1":
                         image = True
                     if image:
