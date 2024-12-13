@@ -154,10 +154,13 @@ def generate_map(tsunami_alert_areas):
             gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
     fig, ax = plt.subplots(figsize=(10, 12))
+    ax.imshow(img, extent=[120, 155, 20, 50])  # 日本列島を中心にした緯度経度範囲
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    plt.show()
 
     output_path = "images/tsunami.png"
     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
