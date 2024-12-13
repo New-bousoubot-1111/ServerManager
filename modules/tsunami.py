@@ -90,8 +90,14 @@ def generate_map(tsunami_alert_areas):
 
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
+        
+        if matched_region is None:
+            print(f"一致しない地域: {area_name}")  # 一致しない地域名を出力
+
         if matched_region:
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+            alert_color = ALERT_COLORS.get(alert_type, "white")
+            print(f"地域: {area_name}, 警報レベル: {alert_type}, 色: {alert_color}")  # 警報レベルと色を出力
+            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = alert_color
 
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
