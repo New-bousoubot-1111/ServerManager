@@ -14,6 +14,13 @@ from dateutil import parser
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
+with open('/images/japan_map.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+# 都道府県や市町村名をリスト化して出力
+region_names = [feature['properties']['N03_004'] for feature in data['features']]
+print(region_names)
+
 # 警報の色設定
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan_map.json"  # GeoJSONファイルのパス
