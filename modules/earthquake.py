@@ -142,9 +142,9 @@ class earthquake(commands.Cog):
                         color=color2
                     )
                     if image:
-                    image_url = await util.eew_image(eew_channel)
-                    if image_url:
-                        embed.set_image(url=image_url)
+                       image_url = await util.eew_image(eew_channel)
+                       if image_url:
+                           embed.set_image(url=image_url)
                     await eew_channel.send(embed=embed)
 
                     if data['report_num'] == "1":
