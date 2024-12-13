@@ -71,7 +71,7 @@ class earthquake(commands.Cog):
         now = util.eew_now()
         if now == 0:
             return
-        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241213113610.json")
+        res = requests.get(f"http://www.kmoni.bosai.go.jp/webservice/hypo/eew/20241213113640.json")
         if res.status_code == 200:
             data = res.json()
             cache = await self.get_cache("cache") or {}
