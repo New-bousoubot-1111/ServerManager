@@ -20,15 +20,17 @@ ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 os.makedirs("images", exist_ok=True)
 
 # Overpass APIを利用してGeoJSONデータを取得
-def fetch_geojson_from_overpass():
-    """Overpass APIからGeoJSON形式のデータを取得"""
+def fetch_geojson_from_overpass(area_name="東京都"):
+    """Overpass APIからGeoJSON形式のデータを取得（エリア名を指定）"""
     url = "http://overpass-api.de/api/interpreter"
-    query = """
+    
+    # エリア名によってクエリを変更
+    query = f""
     [out:json];
-    area["name:ja"="日本"]->.japan;
-    (node(area.japan); way(area.japan); relation(area.japan););
-    out geom;
-    """
+    area["name:ja"="{area_name}"]->.area;
+    (node(area.area); way(area.area); relation(area.area););
+    out geom;""
+    
     response = requests.get(url, params={'data': query})
     
     if response.status_code == 200:
@@ -76,9 +78,20 @@ def fetch_geojson_from_overpass():
     else:
         raise ValueError(f"Overpass APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
 
+# P2P Quake APIから津波情報を取得
+def fetch_tsunami_alerts():
+    """P2P Quake APIから津波情報を取得"""
+    url = "https://api.p2pquake.net/v2/jma/tsunami"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        return response.json()  # 津波情報をJSON形式で返す
+    else:
+        raise ValueError(f"津波情報APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
+
 # GeoJSONデータの読み込み
 try:
-    geojson_data = fetch_geojson_from_overpass()
+    geojson_data = fetch_geojson_from_overpass(area_name="東京都")  # エリア名を変更してデータを取得
     print(f"GeoJSONデータを取得しました。特徴数: {len(geojson_data['features'])}")
 
     # 取得したGeoJSONデータをGeoDataFrameに変換
