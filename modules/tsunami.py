@@ -66,6 +66,9 @@ except Exception as e:
     raise
 
 coastline_buffer = unary_union(coastline_buffer)
+gdf['geometry'] = gdf['geometry'].simplify(tolerance=0.01, preserve_topology=True)
+coastline_buffer = coastline_buffer.simplify(tolerance=0.01, preserve_topology=True)
+
 
 REGION_MAPPING = {
     "沖縄本島地方": "沖縄県",
