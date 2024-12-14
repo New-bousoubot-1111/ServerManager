@@ -159,12 +159,13 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
-        # バッファとの交差判定（ログを追加）
-        print("海岸線との交差判定を実施中...")
+        # 海岸線バッファと交差する地域に色を付ける
+        print("海岸線バッファとの交差判定を実施中...")
         for idx, region in gdf.iterrows():
             region_geometry = region.geometry
-            if is_near_coastline(region_geometry):
-                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
+            # 海岸線のバッファと交差する地域に色を付ける
+            if coastline_buffer.intersects(region_geometry).any():
+                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色に設定
 
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
