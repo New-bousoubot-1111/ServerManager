@@ -42,7 +42,6 @@ try:
     # ジオメトリのバリデーションと修正
     coastline_gdf["valid"] = coastline_gdf.is_valid
     invalid_geometries = coastline_gdf[~coastline_gdf["valid"]]
-
     if not invalid_geometries.empty:
         print(f"無効なジオメトリが {len(invalid_geometries)} 件あります。修正します。")
         coastline_gdf["geometry"] = coastline_gdf["geometry"].apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
@@ -56,6 +55,7 @@ try:
     coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857)
     
     # バッファ後のジオメトリのバリデーション
+    coastline_buffer = coastline_buffer[coastline_buffer.is_valid]  # 無効なジオメトリを削除
     if not coastline_buffer.is_valid.all():
         print("バッファ後に無効なジオメトリがあります。修正します。")
         coastline_buffer = coastline_buffer.apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
