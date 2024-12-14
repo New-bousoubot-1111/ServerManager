@@ -72,8 +72,6 @@ def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
     if area_name in geojson_names:
         return area_name
-    if area_name in REGION_MAPPING:
-        return REGION_MAPPING[area_name]
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
@@ -168,31 +166,22 @@ def generate_map(tsunami_alert_areas):
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+        ax.set_ylim([20, 46])    # 北緯20度～46度（日本全体をカバー）
 
-        # 海岸線を描画（色を指定）
-        coastline_gdf.plot(ax=ax, color="blue", edgecolor="black", linewidth=2)
+        # 日本の地図描画
+        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
+        coastline_gdf.plot(ax=ax, color='black', linewidth=2)
+        ax.set_title("日本津波警報地図", fontsize=16, color="white")
 
-        # その他の地域を描画
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-
-        # 軸非表示
-        ax.set_axis_off()
-
-        # アスペクト比の設定を自動に変更
-        ax.set_aspect('auto')
-
-        # 出力パスに保存
-        output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合は作成
-        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        # 画像の保存
+        output_file = "./images/tsunami_map.png"
+        plt.savefig(output_file, bbox_inches='tight', pad_inches=0.1, transparent=True)
         plt.close()
-
-        print(f"地図が正常に保存されました: {output_path}")
-        return output_path
+        return output_file
     except Exception as e:
-        print(f"地図生成エラー: {e}")
-        return None
+        print("地図生成エラー:", e)
+        raise
+
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
