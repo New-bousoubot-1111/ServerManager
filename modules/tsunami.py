@@ -96,9 +96,9 @@ def is_near_coastline(region):
 
 def create_embed(data):
     alert_levels = {
-        "Advisory": {"title": "津波注意報", "color": 0x800080},  # 紫
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
         "Warning": {"title": "津波警報", "color": 0xff0000},    # 赤
-        "Watch": {"title": "津波監視", "color": 0xffff00}       # 黄
+        "Watch": {"title": "津波注意報", "color": 0xffff00}       # 黄
     }
     embed_title = "津波情報"
     embed_color = 0x00FF00
@@ -142,6 +142,14 @@ def create_embed(data):
                 value=f"予想高さ: {description}\n{condition}",
                 inline=False
             )
+    tsunami_time2 = parser.parse(data.get("time", "不明"))
+    formatted_time2 = tsunami_time2.strftime('%H時%M分')
+    if not data.get("areas"):
+        embed.add_field(
+            name=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
+            value="念のため、今後の情報に気をつけてください。",
+            inline=False
+        )
     return embed
 
 def generate_map(tsunami_alert_areas):
