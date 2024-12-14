@@ -22,7 +22,6 @@ GEOJSON_REGION_FIELD = 'nam_ja'
 gdf = gpd.read_file(GEOJSON_PATH)
 coastline_gdf = gpd.read_file(COASTLINE_PATH)
 
-# 地域マッピング
 REGION_MAPPING = {
     "沖縄本島地方": "Okinawa Ken",
     "宮古島・八重山地方": "Okinawa Ken",
@@ -44,20 +43,16 @@ def match_region(area_name, geojson_names):
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    # GeoJSON データの地域名一覧を取得
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
     
-    # 座標系を統一
     coastline_gdf = coastline_gdf.to_crs(gdf.crs)
     
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
-            # 対象地域の行政ポリゴンを取得
             region_gdf = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region]
             if not region_gdf.empty:
-                # オーバーレイ (海岸線との交差部分を取得)
                 try:
                     coastal_region = gpd.overlay(region_gdf, coastline_gdf, how="intersection")
                     if not coastal_region.empty:
@@ -67,24 +62,29 @@ def generate_map(tsunami_alert_areas):
                     continue
 
     # 地図を描画
-    fig, ax = plt.subplots(figsize=(15, 18))
-    fig.patch.set_facecolor('#2a2a2a')
-    ax.set_facecolor("#2a2a2a")
-    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-    ax.set_axis_off()
+    try:
+        fig, ax = plt.subplots(figsize=(15, 18))
+        fig.patch.set_facecolor('#2a2a2a')
+        ax.set_facecolor("#2a2a2a")
+        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+        ax.set_axis_off()
 
-    output_path = "images/tsunami.png"
-    plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-    plt.close()
-    return output_path
+        output_path = "images/tsunami.png"
+        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        plt.close()
+        print("地図画像が正常に生成されました。")  # ログ
+        return output_path
+    except Exception as e:
+        print(f"地図画像の生成中にエラーが発生しました: {e}")
+        return None
 
 def create_embed(data):
     alert_levels = {
-        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
-        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
-        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
+        "Advisory": {"title": "大津波警報", "color": 0x800080},
+        "Warning": {"title": "津波警報", "color": 0xff0000},
+        "Watch": {"title": "津波注意報", "color": 0xffff00}
     }
     embed_title = "津波情報"
     embed_color = 0x00FF00
@@ -192,12 +192,19 @@ class tsunami(commands.Cog):
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
 
+                # 地図画像の生成ログ
+                print(f"警報地域: {tsunami_alert_areas}")
+
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
-                    embed.set_image(url="attachment://tsunami.png")
-                    with open(map_path, "rb") as file:
-                        discord_file = File(file, filename="tsunami.png")
-                        await tsunami_channel.send(embed=embed, file=discord_file)
+                    if map_path:
+                        embed.set_image(url="attachment://tsunami.png")
+                        with open(map_path, "rb") as file:
+                            discord_file = File(file, filename="tsunami.png")
+                            await tsunami_channel.send(embed=embed, file=discord_file)
+                    else:
+                        print("地図画像が生成されませんでした。")
+                        await tsunami_channel.send(embed=embed)
                 else:
                     await tsunami_channel.send(embed=embed)
 
