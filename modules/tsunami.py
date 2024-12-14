@@ -196,6 +196,12 @@ def generate_map(tsunami_alert_areas):
         print("地図を描画中...")
         print(coastline_buffer_gdf.is_valid)
         print(gdf.is_valid)
+        gdf_total_bounds = gdf.total_bounds
+        print("gdf total_bounds:", gdf_total_bounds)
+        if any(pd.isna(gdf_total_bounds)) or any(val == float('inf') for val in gdf_total_bounds):
+            print("無効なtotal_boundsが検出されました。範囲を修正します。")
+            # 範囲を適切に修正する
+            gdf_total_bounds = [122.93349315, 20.42274033, 153.98686576, 45.55733109]  # デフォルトの範囲に設定
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
