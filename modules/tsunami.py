@@ -41,9 +41,9 @@ try:
     print("元のCRS:", coastline_gdf.crs)
 
     # 投影座標系に変換してバッファ生成
-    coastline_gdf = coastline_gdf.to_crs(epsg=3857)
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
-    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)  # バッファ生成
     print("バッファ生成成功:", coastline_buffer.head())
 
     # バッファをプロット（CRS変換後）
@@ -52,10 +52,10 @@ try:
     plt.show()  # バッファを表示
 
     # 元のCRS（WGS84）に戻す
-    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
+    coastline_buffer = coastline_buffer.set_crs(epsg=3857).to_crs(epsg=4326)  # CRSを元に戻す
     print("CRSを元に戻しました:", coastline_buffer.crs)
 
-    # 元の座標系でバッファをプロット
+    # 元の座標系でバッファを再度プロット
     coastline_buffer.plot()
     plt.title("Coastline Buffer (EPSG:4326)")
     plt.show()  # 再度、元のCRSで表示
@@ -63,6 +63,7 @@ try:
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
+
 
 REGION_MAPPING = {
     "沖縄本島地方": "沖縄県",
