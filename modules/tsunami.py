@@ -78,6 +78,10 @@ except Exception as e:
     print(f"GeoJSONデータの読み込みエラー: {e}")
     raise
 
+# GeoDataFrameの構造を確認
+print("GeoDataFrameの構造:")
+print(gdf.head())  # 最初の数行を表示して構造を確認
+
 # 地域名の取得方法を変更
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
