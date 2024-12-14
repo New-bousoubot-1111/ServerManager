@@ -9,6 +9,7 @@ from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
+from shapely.ops import unary_union
 import os
 
 # 設定ファイルの読み込み
@@ -27,6 +28,7 @@ try:
     coastline_gdf = gpd.read_file(COASTLINE_PATH)
     print("GeoJSONデータ:", gdf.head())
     print("海岸線データ:", coastline_gdf.head())
+    print(coastline_gdf.geometry)
 except Exception as e:
     print("GeoJSONファイルの読み込みエラー:", e)
     raise
@@ -40,14 +42,25 @@ try:
     print("元のCRS:", coastline_gdf.crs)
 
     # 投影座標系に変換してバッファ生成
-    coastline_gdf = coastline_gdf.to_crs(epsg=3857)
-    buffer_distance = 5000  # 5000メートル（5km）のバッファ
-    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
+    buffer_distance = 0.1  # 5000メートル（5km）のバッファ
+    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)  # バッファ生成
     print("バッファ生成成功:", coastline_buffer.head())
 
+    # バッファをプロット（CRS変換後）
+    coastline_buffer.plot()
+    plt.title("Coastline Buffer (EPSG:3857)")
+    plt.show()  # バッファを表示
+
     # 元のCRS（WGS84）に戻す
-    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
+    coastline_buffer = coastline_buffer.set_crs(epsg=3857).to_crs(epsg=4326)  # CRSを元に戻す
     print("CRSを元に戻しました:", coastline_buffer.crs)
+
+    # 元の座標系でバッファを再度プロット
+    coastline_buffer.plot()
+    plt.title("Coastline Buffer (EPSG:4326)")
+    plt.show()  # 再度、元のCRSで表示
+
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
@@ -80,6 +93,8 @@ coastline_buffer = coastline_buffer.buffer(0)
 
 # CRSを元に戻す
 coastline_buffer = coastline_buffer.to_crs(epsg=4326)
+print(gdf.crs)  # 地域データのCRS
+print(coastline_buffer.crs)  # 海岸線バッファのCRS
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
@@ -90,9 +105,9 @@ def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
-def is_near_coastline(region):
+def is_near_coastline(region_geometry):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.intersects(region).any()
+    return coastline_buffer.intersects(region_geometry).any()  # 修正
 
 def create_embed(data):
     alert_levels = {
@@ -159,20 +174,15 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
-        # ジオメトリの無効値を修正
-        print("ジオメトリの無効値を確認中...")
-        if not coastline_buffer.is_valid.all():
-            coastline_buffer = coastline_buffer.buffer(0)  # 無効ジオメトリの修正
-
-        if not gdf.is_valid.all():
-            gdf = gdf.buffer(0)  # 無効ジオメトリの修正
-
-        # バッファとの交差判定
-        print("海岸線との交差判定を実施中...")
+        # 海岸線バッファと交差する地域に色を付ける
+        print("海岸線バッファとの交差判定を実施中...")
         for idx, region in gdf.iterrows():
             region_geometry = region.geometry
-            if is_near_coastline(region_geometry):
-                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
+            intersects = coastline_buffer.intersects(region_geometry).any()
+            print(f"地域: {region['nam_ja']}, 交差: {intersects}")
+            # 海岸線のバッファと交差する地域に色を付ける
+            if coastline_buffer.intersects(region_geometry).any():
+                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色に設定
 
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
@@ -187,15 +197,8 @@ def generate_map(tsunami_alert_areas):
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-
-        # 明示的に描画範囲を設定
-        ax.set_xlim([122, 153])  # 東経122度～153度
-        ax.set_ylim([20, 46])    # 北緯20度～46度
-
-        # 海岸線のバッファを背景に描画（青色）
-        coastline_buffer.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0)
-
-        # 警報エリアの描画
+        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
         # 軸非表示
@@ -203,8 +206,12 @@ def generate_map(tsunami_alert_areas):
 
         # 出力パスに保存
         output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合
+
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        coastline_buffer_gdf = gpd.GeoDataFrame(geometry=[coastline_buffer], crs=gdf.crs)
+        coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, label="Coastline Buffer")
+        plt.legend()
         plt.close()
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
