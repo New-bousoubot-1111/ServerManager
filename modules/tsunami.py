@@ -55,6 +55,77 @@ except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
 
+def match_region(area_name, geojson_names):
+    """地域名をGeoJSONデータと一致させる"""
+    if area_name in geojson_names:
+        return area_name
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
+    best_match, score = process.extractOne(area_name, geojson_names)
+    return best_match if score >= 80 else None
+
+def is_near_coastline(region):
+    """地域が海岸線のバッファ領域と交差するかを判定する"""
+    return coastline_buffer.intersects(region).any()
+
+def create_embed(data):
+    alert_levels = {
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},    # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}       # 黄
+    }
+    embed_title = "津波情報"
+    embed_color = 0x00FF00
+
+    levels_in_data = [area.get("grade") for area in data.get("areas", [])]
+    for level in ["Advisory", "Warning", "Watch"]:
+        if level in levels_in_data:
+            embed_title = alert_levels[level]["title"]
+            embed_color = alert_levels[level]["color"]
+            break
+
+    embed = Embed(title=embed_title, color=embed_color)
+    tsunami_time = parser.parse(data.get("time", "不明"))
+    formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
+
+    if data.get("areas"):
+        embed.description = f"{embed_title}が発表されました\n安全な場所に避難してください"
+        embed.add_field(name="発表時刻", value=formatted_time, inline=False)
+
+    for area in data.get("areas", []):
+        area_name = area["name"]
+        first_height = area.get("firstHeight", {})
+        maxHeight = area.get("maxHeight", {})
+        condition = first_height.get("condition", "")
+        description = maxHeight.get("description", "不明")
+        arrival_time = first_height.get("arrivalTime", "不明")
+
+        if arrival_time != "不明":
+            try:
+                arrival_time = parser.parse(arrival_time).strftime('%H時%M分')
+                embed.add_field(
+                    name=area_name,
+                    value=f"到達予想時刻: {arrival_time}\n予想高さ: {description}\n{condition}",
+                    inline=False
+                )
+            except ValueError:
+                pass
+        elif arrival_time == "不明":
+            embed.add_field(
+                name=area_name,
+                value=f"予想高さ: {description}\n{condition}",
+                inline=False
+            )
+    tsunami_time2 = parser.parse(data.get("time", "不明"))
+    formatted_time2 = tsunami_time2.strftime('%H時%M分')
+    if not data.get("areas"):
+        embed.add_field(
+            name=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
+            value="念のため、今後の情報に気をつけてください。",
+            inline=False
+        )
+    return embed
+
 # 地図生成関数
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
