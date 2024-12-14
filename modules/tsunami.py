@@ -3,50 +3,42 @@ import requests
 from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
-import geojson
-
-# ファイルを読み込む
-with open("images/japan_map.json", "r", encoding="utf-8") as f:
-    data = geojson.load(f)
-# 地名を取得
-place_names = []
-for feature in data["features"]:
-    properties = feature.get("properties", {})
-    name = properties.get("N03_004")  # 地名のフィールド
-    if name:
-        place_names.append(name)
-# 結果を表示
-print(place_names)
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
-# 警報の色設定
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan_map.json"  # GeoJSONファイルのパス
-GEOJSON_REGION_FIELD = 'N03_003'  # 市町村名を利用
+GEOJSON_PATH = "./images/japan.geojson"
+GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
 
+REGION_MAPPING = {
+    "小笠原諸島": "Tokyo To",
+    "伊豆諸島": "Tokyo To"
+}
+
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
+    if area_name in geojson_names:
+        return area_name
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
 def create_embed(data):
-    """津波警報情報のEmbedを作成"""
     alert_levels = {
-        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
-        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
-        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
+        "Advisory": {"title": "大津波警報", "color": 0x800080},
+        "Warning": {"title": "津波警報", "color": 0xff0000},
+        "Watch": {"title": "津波注意報", "color": 0xffff00}
     }
     embed_title = "津波情報"
     embed_color = 0x00FF00
@@ -101,25 +93,19 @@ def create_embed(data):
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()  # 市町村名をリスト化
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
-        
-        if matched_region is None:
-            print(f"一致しない地域: {area_name}")  # 一致しない地域名を出力
-
         if matched_region:
-            alert_color = ALERT_COLORS.get(alert_type, "white")
-            print(f"地域: {area_name}, 警報レベル: {alert_type}, 色: {alert_color}")  # 警報レベルと色を出力
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = alert_color
+            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
-    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+    ax.set_xlim([122, 153])
+    ax.set_ylim([20, 46])
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
@@ -162,19 +148,15 @@ class tsunami(commands.Cog):
                 print("津波データが空です。")
                 return
 
-            latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
-            filtered_tsunamis = [
-                tsunami for tsunami in data
-                if parser.parse(tsunami["time"]).date() == latest_date
-            ]
-            filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
+            # データを時刻順にソート
+            data.sort(key=lambda tsunami: parser.parse(tsunami["time"]), reverse=True)
 
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
 
-            for tsunami in filtered_tsunamis:
+            for tsunami in data:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                     continue
