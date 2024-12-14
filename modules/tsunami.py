@@ -15,7 +15,7 @@ with open('json/config.json', 'r') as f:
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"
-COASTLINE_PATH = "./images/japan_coastline.geojson"
+COASTLINE_PATH = "./images/kaigansen.json"
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
