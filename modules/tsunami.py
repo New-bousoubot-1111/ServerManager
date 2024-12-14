@@ -15,17 +15,12 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan.geojson"
-GEOJSON_REGION_FIELD = 'nam_ja'
-
-# GeoJSONデータの読み込み
-gdf = gpd.read_file(GEOJSON_PATH)
 
 REGION_MAPPING = {
     "沖縄本島地方": "Okinawa Ken",
     "宮古島・八重山地方": "Okinawa Ken",
-    "小笠原諸島": "東京都",
-    "伊豆諸島": "東京都"
+    "小笠原諸島": "Tokyo",
+    "伊豆諸島": "Tokyo"
 }
 
 def match_region(area_name, geojson_names):
@@ -97,15 +92,46 @@ def create_embed(data):
         )
     return embed
 
+def fetch_geojson_from_overpass():
+    """Overpass APIから日本の海岸線データを取得"""
+    url = "https://overpass-api.de/api/interpreter"
+    query = """
+    [out:json];
+    (
+      way["natural"="coastline"](24,122,46,153);
+    );
+    out body;
+    >;
+    out skel qt;
+    """
+    response = requests.get(url, params={"data": query})
+    response.raise_for_status()
+    data = response.json()
+
+    features = []
+    for element in data['elements']:
+        if element['type'] == 'way' and 'geometry' in element:
+            coordinates = [(node['lon'], node['lat']) for node in element['geometry']]
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": coordinates
+                },
+                "properties": {}
+            })
+
+    return gpd.GeoDataFrame.from_features(features)
+
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
+    gdf = fetch_geojson_from_overpass()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     for area_name, alert_type in tsunami_alert_areas.items():
-        matched_region = match_region(area_name, geojson_names)
+        matched_region = match_region(area_name, gdf['properties'].tolist())
         if matched_region:
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+            gdf.loc[gdf['properties'] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
