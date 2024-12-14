@@ -15,6 +15,7 @@ import os
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
+# 定数設定
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
 COASTLINE_PATH = "./images/coastline.geojson"  # 海岸線のGeoJSONファイルのパス
@@ -43,43 +44,21 @@ try:
     coastline_gdf = coastline_gdf.to_crs(epsg=3857)
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-    print("バッファ生成成功:", coastline_buffer.head())
 
     # 元のCRS（WGS84）に戻す
     coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
-    print("CRSを元に戻しました:", coastline_buffer.crs)
+    print("海岸線データ処理完了")
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
 
+# 地域名のマッピング
 REGION_MAPPING = {
     "沖縄本島地方": "沖縄県",
     "宮古島・八重山地方": "沖縄県",
     "小笠原諸島": "東京都",
     "伊豆諸島": "東京都"
 }
-
-# 海岸線データを修復する関数
-def fix_geometry(gdf):
-    """GeoDataFrameのジオメトリを修復"""
-    gdf["geometry"] = gdf["geometry"].buffer(0)
-    return gdf
-
-# 海岸線データを修正
-print("海岸線データの修復中...")
-coastline_gdf = fix_geometry(coastline_gdf)
-
-# バッファを作成
-print("バッファを作成中...")
-buffer_distance = 5000  # 5km
-coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-
-# バッファを修復
-print("バッファの修復中...")
-coastline_buffer = coastline_buffer.buffer(0)
-
-# CRSを元に戻す
-coastline_buffer = coastline_buffer.to_crs(epsg=4326)
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
@@ -90,11 +69,15 @@ def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
-def is_near_coastline(region):
+def is_near_coastline(region_geometry):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.intersects(region).any()
+    for buffer_geometry in coastline_buffer:
+        if region_geometry.intersects(buffer_geometry):
+            return True
+    return False
 
 def create_embed(data):
+    """津波情報の埋め込みメッセージを生成"""
     alert_levels = {
         "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
         "Warning": {"title": "津波警報", "color": 0xff0000},    # 赤
@@ -142,14 +125,6 @@ def create_embed(data):
                 value=f"予想高さ: {description}\n{condition}",
                 inline=False
             )
-    tsunami_time2 = parser.parse(data.get("time", "不明"))
-    formatted_time2 = tsunami_time2.strftime('%H時%M分')
-    if not data.get("areas"):
-        embed.add_field(
-            name=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
-            value="念のため、今後の情報に気をつけてください。",
-            inline=False
-        )
     return embed
 
 def generate_map(tsunami_alert_areas):
@@ -158,45 +133,32 @@ def generate_map(tsunami_alert_areas):
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
-    try:
-        # バッファとの交差判定（ログを追加）
-        print("海岸線との交差判定を実施中...")
-        for idx, region in gdf.iterrows():
-            region_geometry = region.geometry
-            if is_near_coastline(region_geometry):
-                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
+    # 津波警報エリアの色設定
+    print("津波警報エリアの色設定を実施中...")
+    for area_name, alert_type in tsunami_alert_areas.items():
+        matched_region = match_region(area_name, geojson_names)
+        if matched_region:
+            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-        # 津波警報エリアの色設定
-        print("津波警報エリアの色設定を実施中...")
-        for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = match_region(area_name, geojson_names)
-            print(f"地域名: {area_name}, マッチ結果: {matched_region}")
-            if matched_region:
-                gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+    # 地図の描画
+    print("地図を描画中...")
+    fig, ax = plt.subplots(figsize=(15, 18))
+    fig.patch.set_facecolor('#2a2a2a')
+    ax.set_facecolor("#2a2a2a")
+    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
-        # 地図の描画
-        print("地図を描画中...")
-        fig, ax = plt.subplots(figsize=(15, 18))
-        fig.patch.set_facecolor('#2a2a2a')
-        ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+    # 軸非表示
+    ax.set_axis_off()
 
-        # 軸非表示
-        ax.set_axis_off()
-
-        # 出力パスに保存
-        output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合は作成
-        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-        plt.close()
-        print(f"地図が正常に保存されました: {output_path}")
-        return output_path
-
-    except Exception as e:
-        print("地図生成エラー:", e)
-        raise
+    # 出力パスに保存
+    output_path = "images/tsunami.png"
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+    plt.close()
+    print(f"地図が正常に保存されました: {output_path}")
+    return output_path
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
