@@ -1,12 +1,15 @@
 import json
 import requests
+from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from fuzzywuzzy import process
-import os
+from nextcord.ext import commands, tasks
+from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
+import os
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
