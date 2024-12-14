@@ -3,39 +3,102 @@ import requests
 from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
+import os
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
+GEOJSON_REGION_FIELD = 'nam_ja'
+
+# フォルダ作成（必要な場合）
+os.makedirs("images", exist_ok=True)
+
+# Overpass APIを利用してGeoJSONデータを取得
+def fetch_geojson_from_overpass():
+    url = "http://overpass-api.de/api/interpreter"
+    query = """
+    [out:json];
+    area["name:ja"="日本"]->.japan;
+    (node(area.japan); way(area.japan); relation(area.japan););
+    out body;
+    >;
+    out skel qt;
+    """
+    response = requests.get(url, params={'data': query})
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise ValueError("Overpass APIからデータを取得できませんでした。")
+
+# GeoJSONデータの読み込み
+try:
+    geojson_data = fetch_geojson_from_overpass()
+    gdf = gpd.GeoDataFrame.from_features(geojson_data['features'])
+    print("GeoJSONデータの読み込みに成功しました。")
+except Exception as e:
+    print(f"GeoJSONデータの読み込みエラー: {e}")
+    raise
 
 REGION_MAPPING = {
     "沖縄本島地方": "Okinawa Ken",
     "宮古島・八重山地方": "Okinawa Ken",
-    "小笠原諸島": "Tokyo",
-    "伊豆諸島": "Tokyo"
+    "小笠原諸島": "東京都",
+    "伊豆諸島": "東京都"
 }
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
-    # 直接一致を試みる
     if area_name in geojson_names:
         return area_name
-    # マッピングの利用
     if area_name in REGION_MAPPING:
         return REGION_MAPPING[area_name]
-    # Fuzzyマッチング
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
+def generate_map(tsunami_alert_areas):
+    """津波警報地図を生成し、ローカルパスを返す"""
+    print("地図生成を開始します...")
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
+    print(f"GeoJSON内の地域名: {geojson_names}")
+    gdf["color"] = "#767676"  # 全地域を灰色に設定
+
+    for area_name, alert_type in tsunami_alert_areas.items():
+        print(f"処理中の地域: {area_name}, 警報レベル: {alert_type}")
+        matched_region = match_region(area_name, geojson_names)
+        if matched_region:
+            print(f"一致した地域: {matched_region}")
+            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+        else:
+            print(f"一致しない地域: {area_name}")
+
+    # プロット設定
+    try:
+        fig, ax = plt.subplots(figsize=(15, 18))
+        fig.patch.set_facecolor('#2a2a2a')
+        ax.set_facecolor("#2a2a2a")
+        ax.set_xlim([122, 153])
+        ax.set_ylim([20, 46])
+        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+        ax.set_axis_off()
+
+        output_path = "images/tsunami.png"
+        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        plt.close()
+        print(f"地図生成完了: {output_path}")
+        return output_path
+    except Exception as e:
+        print(f"地図生成中のエラー: {e}")
+        raise
+
 def create_embed(data):
+    """津波情報の埋め込みメッセージを生成"""
     alert_levels = {
         "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
         "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
@@ -91,60 +154,6 @@ def create_embed(data):
             inline=False
         )
     return embed
-
-def fetch_geojson_from_overpass():
-    """Overpass APIから日本の海岸線データを取得"""
-    url = "https://overpass-api.de/api/interpreter"
-    query = """
-    [out:json];
-    (
-      way["natural"="coastline"](24,122,46,153);
-    );
-    out body;
-    >;
-    out skel qt;
-    """
-    response = requests.get(url, params={"data": query})
-    response.raise_for_status()
-    data = response.json()
-
-    features = []
-    for element in data['elements']:
-        if element['type'] == 'way' and 'geometry' in element:
-            coordinates = [(node['lon'], node['lat']) for node in element['geometry']]
-            features.append({
-                "type": "Feature",
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": coordinates
-                },
-                "properties": {}
-            })
-
-    return gpd.GeoDataFrame.from_features(features)
-
-def generate_map(tsunami_alert_areas):
-    """津波警報地図を生成し、ローカルパスを返す"""
-    gdf = fetch_geojson_from_overpass()
-    gdf["color"] = "#767676"  # 全地域を灰色に設定
-
-    for area_name, alert_type in tsunami_alert_areas.items():
-        matched_region = match_region(area_name, gdf['properties'].tolist())
-        if matched_region:
-            gdf.loc[gdf['properties'] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
-
-    fig, ax = plt.subplots(figsize=(15, 18))
-    fig.patch.set_facecolor('#2a2a2a')
-    ax.set_facecolor("#2a2a2a")
-    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-    ax.set_axis_off()
-
-    output_path = "images/tsunami.png"
-    plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-    plt.close()
-    return output_path
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
