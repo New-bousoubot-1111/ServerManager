@@ -198,9 +198,6 @@ def generate_map(tsunami_alert_areas):
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
         
-        # 描画範囲を設定
-        ax.set_xlim([122, 153])  # 東経122度～153度
-        ax.set_ylim([20, 46])    # 北緯20度～46度
         ax.set_aspect('auto')    # アスペクト比を自動調整
 
         # 海岸線バッファを背景に描画
