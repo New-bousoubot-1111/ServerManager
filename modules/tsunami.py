@@ -39,14 +39,17 @@ try:
         coastline_gdf.set_crs(epsg=4326, inplace=True)
     print("元のCRS:", coastline_gdf.crs)
 
+    # 空のジオメトリを削除
+    coastline_gdf = coastline_gdf[~coastline_gdf.is_empty]
+
     # 投影座標系に変換してバッファ生成
-    coastline_gdf = coastline_gdf.to_crs(epsg=3857)
+    coastline_gdf = coastline_gdf.to_crs(epsg=4326)  # WGS84（緯度経度）
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
     print("バッファ生成成功:", coastline_buffer.head())
 
     # 元のCRS（WGS84）に戻す
-    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
+    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=4326).to_crs(epsg=4326)
     print("CRSを元に戻しました:", coastline_buffer.crs)
 except Exception as e:
     print("海岸線データの処理エラー:", e)
@@ -174,28 +177,19 @@ def generate_map(tsunami_alert_areas):
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-        # 空のジオメトリを削除（ローカル変数に変更）
-        print("空のジオメトリを削除しています...")
-        coastline_gdf_local = coastline_gdf[coastline_gdf.is_valid]  # 有効なジオメトリのみ残す
-        coastline_gdf_local = coastline_gdf_local[coastline_gdf_local.geometry.notnull()]  # ジオメトリがNULLでないものを残す
-
-        # 無効なジオメトリを修正
-        print("無効なジオメトリを修正しています...")
-        coastline_gdf_local["geometry"] = coastline_gdf_local["geometry"].buffer(0)  # ジオメトリの修正
-
-        # 海岸線の描画
-        print("海岸線の描画中...")
+        # 地図の描画
+        print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-        
-        # 地域の描画
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
-        # 海岸線の描画（青色で塗りつぶし）
-        coastline_gdf_local.plot(ax=ax, color="lightblue", edgecolor="darkblue", linewidth=1)
+        # 海岸線を描画（色を指定）
+        coastline_gdf.plot(ax=ax, color="blue", edgecolor="black", linewidth=2)
+
+        # その他の地域を描画
+        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
         # 軸非表示
         ax.set_axis_off()
@@ -205,12 +199,12 @@ def generate_map(tsunami_alert_areas):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合は作成
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
+
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
-
     except Exception as e:
-        print("地図生成エラー:", e)
-        raise
+        print(f"地図生成エラー: {e}")
+        return None
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
