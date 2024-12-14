@@ -128,31 +128,42 @@ def generate_map(tsunami_alert_areas):
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
-    for idx, region in gdf.iterrows():
-        region_geometry = region.geometry
-        if is_near_coastline(region_geometry):
-            gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
-
-    for area_name, alert_type in tsunami_alert_areas.items():
-        matched_region = match_region(area_name, geojson_names)
-        if matched_region:
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
-
     try:
+        # バッファとの交差判定（ログを追加）
+        print("海岸線との交差判定を実施中...")
+        for idx, region in gdf.iterrows():
+            region_geometry = region.geometry
+            if is_near_coastline(region_geometry):
+                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
+
+        # 津波警報エリアの色設定
+        print("津波警報エリアの色設定を実施中...")
+        for area_name, alert_type in tsunami_alert_areas.items():
+            matched_region = match_region(area_name, geojson_names)
+            print(f"地域名: {area_name}, マッチ結果: {matched_region}")
+            if matched_region:
+                gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+
+        # 地図の描画
+        print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+
+        # 軸非表示
         ax.set_axis_off()
 
+        # 出力パスに保存
         output_path = "images/tsunami.png"
         os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合は作成
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
+
     except Exception as e:
         print("地図生成エラー:", e)
         raise
