@@ -1,5 +1,4 @@
 import json
-import os
 import requests
 from colorama import Fore
 import geopandas as gpd
@@ -20,13 +19,10 @@ COASTLINE_PATH = "./images/kaigansen.json"
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
-try:
-    gdf = gpd.read_file(GEOJSON_PATH)
-    coastline_gdf = gpd.read_file(COASTLINE_PATH)
-except Exception as e:
-    print(f"GeoJSONデータの読み込み中にエラーが発生しました: {e}")
-    raise
+gdf = gpd.read_file(GEOJSON_PATH)
+coastline_gdf = gpd.read_file(COASTLINE_PATH)
 
+# 地域マッピング
 REGION_MAPPING = {
     "沖縄本島地方": "Okinawa Ken",
     "宮古島・八重山地方": "Okinawa Ken",
@@ -48,45 +44,41 @@ def match_region(area_name, geojson_names):
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    try:
-        # GeoJSON データの地域名一覧を取得
-        geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
-        gdf["color"] = "#767676"  # 全地域を灰色に設定
-
-        # 座標系を統一
-        coastline_gdf_to_crs = coastline_gdf.to_crs(gdf.crs)
-
-        for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = match_region(area_name, geojson_names)
-            if matched_region:
-                region_gdf = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region]
-
+    # GeoJSON データの地域名一覧を取得
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
+    gdf["color"] = "#767676"  # 全地域を灰色に設定
+    
+    # 座標系を統一
+    coastline_gdf = coastline_gdf.to_crs(gdf.crs)
+    
+    for area_name, alert_type in tsunami_alert_areas.items():
+        matched_region = match_region(area_name, geojson_names)
+        if matched_region:
+            # 対象地域の行政ポリゴンを取得
+            region_gdf = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region]
+            if not region_gdf.empty:
                 # オーバーレイ (海岸線との交差部分を取得)
                 try:
-                    coastal_region = gpd.overlay(region_gdf, coastline_gdf_to_crs, how="intersection")
+                    coastal_region = gpd.overlay(region_gdf, coastline_gdf, how="intersection")
                     if not coastal_region.empty:
                         gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
                 except Exception as e:
                     print(f"Error during overlay operation: {e}")
                     continue
 
-        # 地図を描画
-        fig, ax = plt.subplots(figsize=(15, 18))
-        fig.patch.set_facecolor('#2a2a2a')
-        ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-        ax.set_axis_off()
+    # 地図を描画
+    fig, ax = plt.subplots(figsize=(15, 18))
+    fig.patch.set_facecolor('#2a2a2a')
+    ax.set_facecolor("#2a2a2a")
+    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+    ax.set_axis_off()
 
-        output_path = "images/tsunami.png"
-        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-        plt.close()
-        return output_path
-
-    except Exception as e:
-        print(f"地図生成中にエラーが発生しました: {e}")
-        return None
+    output_path = "images/tsunami.png"
+    plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+    plt.close()
+    return output_path
 
 def create_embed(data):
     alert_levels = {
@@ -202,14 +194,10 @@ class tsunami(commands.Cog):
 
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
-                    if map_path and os.path.exists(map_path):
-                        embed.set_image(url="attachment://tsunami.png")
-                        with open(map_path, "rb") as file:
-                            discord_file = File(file, filename="tsunami.png")
-                            await tsunami_channel.send(embed=embed, file=discord_file)
-                    else:
-                        print("地図画像の生成に失敗しました。")
-                        await tsunami_channel.send(embed=embed)
+                    embed.set_image(url="attachment://tsunami.png")
+                    with open(map_path, "rb") as file:
+                        discord_file = File(file, filename="tsunami.png")
+                        await tsunami_channel.send(embed=embed, file=discord_file)
                 else:
                     await tsunami_channel.send(embed=embed)
 
