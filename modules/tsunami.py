@@ -177,9 +177,6 @@ def generate_map(tsunami_alert_areas):
         print("海岸線バッファの処理中...")
         coastline_buffer_gdf = gpd.GeoDataFrame(geometry=coastline_buffer, crs=gdf.crs)
 
-        coastline_buffer_gdf = coastline_buffer_gdf[coastline_buffer_gdf.is_valid]
-        gdf = gdf[gdf.is_valid]
-
         # 海岸線バッファと交差する地域に色を付ける
         print("海岸線バッファとの交差判定を実施中...")
         for idx, region in gdf.iterrows():
