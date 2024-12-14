@@ -72,7 +72,9 @@ def fetch_geojson_from_overpass():
 # GeoJSONデータの読み込み
 try:
     geojson_data = fetch_geojson_from_overpass()
-    # GeoDataFrameを作成する
+    print(f"GeoJSONデータを取得しました。特徴数: {len(geojson_data['features'])}")
+
+    # 取得したGeoJSONデータをGeoDataFrameに変換
     gdf = gpd.GeoDataFrame.from_features(geojson_data["features"])
     print("GeoJSONデータの読み込みに成功しました。")
 except Exception as e:
