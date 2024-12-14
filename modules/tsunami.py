@@ -1,13 +1,10 @@
 import json
 import requests
-from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
-from datetime import datetime
-from dateutil import parser
 import os
 
 # 設定ファイルの読み込み
@@ -24,13 +21,26 @@ def fetch_geojson_from_overpass(area_name="東京都"):
     """Overpass APIからGeoJSON形式のデータを取得（エリア名を指定）"""
     url = "http://overpass-api.de/api/interpreter"
     
-    # エリア名によってクエリを変更
-    query = f""
-    [out:json];
-    area["name:ja"="{area_name}"]->.area;
-    (node(area.area); way(area.area); relation(area.area););
-    out geom;""
+    # エリアIDを取得するためのクエリを作成
+    query_area_id = '[out:json]; area["name:ja"="' + area_name + '"]; out id;'
     
+    # エリアIDを取得
+    response_area = requests.get(url, params={'data': query_area_id})
+    if response_area.status_code != 200:
+        raise ValueError(f"エリアIDの取得に失敗しました。HTTPステータスコード: {response_area.status_code}")
+    
+    area_data = response_area.json()
+    if not area_data.get("elements"):
+        raise ValueError(f"エリア {area_name} のIDを取得できませんでした。")
+
+    # エリアIDを取得
+    area_id = area_data["elements"][0]["id"]
+    print(f"エリアID: {area_id}")
+
+    # エリアIDを使用してノード、ウェイ、リレーションを取得するクエリを作成
+    query = '[out:json]; area(' + str(area_id) + '); (node(area); way(area); relation(area);); out geom;'
+    
+    # エリアIDを使ってノード、ウェイ、リレーションを取得
     response = requests.get(url, params={'data': query})
     
     if response.status_code == 200:
@@ -77,17 +87,6 @@ def fetch_geojson_from_overpass(area_name="東京都"):
             raise ValueError("GeoJSONデータに特徴が含まれていません。")
     else:
         raise ValueError(f"Overpass APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
-
-# P2P Quake APIから津波情報を取得
-def fetch_tsunami_alerts():
-    """P2P Quake APIから津波情報を取得"""
-    url = "https://api.p2pquake.net/v2/jma/tsunami"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        return response.json()  # 津波情報をJSON形式で返す
-    else:
-        raise ValueError(f"津波情報APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
 
 # GeoJSONデータの読み込み
 try:
