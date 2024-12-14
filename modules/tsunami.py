@@ -198,13 +198,13 @@ def generate_map(tsunami_alert_areas):
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
 
-        # 座標系をEPSG:4326に設定（緯度経度）
-        gdf = gdf.to_crs(epsg=4326)
-        coastline_buffer_gdf = coastline_buffer_gdf.to_crs(epsg=4326)
+        # 投影法をEPSG:3857に変換（Web Mercator）
+        gdf = gdf.to_crs(epsg=3857)
+        coastline_buffer_gdf = coastline_buffer_gdf.to_crs(epsg=3857)
 
-        # 描画範囲を設定 (緯度経度の範囲)
-        ax.set_xlim([-180, 180])  # 経度の範囲
-        ax.set_ylim([-90, 90])    # 緯度の範囲
+        # 描画範囲を設定 (投影法がEPSG:3857の場合)
+        ax.set_xlim([-20000000, 20000000])  # Web Mercatorの範囲に合わせた設定
+        ax.set_ylim([-10000000, 10000000])
 
         ax.set_aspect('auto')  # アスペクト比を自動調整
 
