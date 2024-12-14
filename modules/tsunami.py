@@ -134,7 +134,7 @@ def generate_map(tsunami_alert_areas):
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
-    output_path = "images/tsunami_with_coastline.png"
+    output_path = "images/tsunami.png"
     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
     plt.close()
     return output_path
