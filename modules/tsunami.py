@@ -27,6 +27,9 @@ try:
     coastline_gdf = gpd.read_file(COASTLINE_PATH)
     print("GeoJSONデータ:", gdf.head())
     print("海岸線データ:", coastline_gdf.head())
+    print(coastline_gdf.geometry)
+    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+    print(coastline_buffer.head())
 except Exception as e:
     print("GeoJSONファイルの読み込みエラー:", e)
     raise
