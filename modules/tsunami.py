@@ -174,14 +174,19 @@ def generate_map(tsunami_alert_areas):
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-        # 地図の描画
-        print("地図を描画中...")
+        # 海岸線の描画
+        print("海岸線の描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+        
+        # 地域の描画
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+
+        # 海岸線の描画（青色で塗りつぶし）
+        coastline_gdf.plot(ax=ax, color="lightblue", edgecolor="darkblue", linewidth=1)
 
         # 軸非表示
         ax.set_axis_off()
