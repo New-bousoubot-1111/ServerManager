@@ -200,9 +200,10 @@ def generate_map(tsunami_alert_areas):
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
         gdf_total_bounds = gdf.total_bounds
+        print("gdf total_bounds:", gdf_total_bounds)  # 範囲を確認
         ax.set_xlim(gdf_total_bounds[0], gdf_total_bounds[2])  # xmin, xmax
         ax.set_ylim(gdf_total_bounds[1], gdf_total_bounds[3])  # ymin, ymax
-        ax.set_aspect('auto')
+        ax.set_aspect('equal')
 
         # 海岸線バッファを背景に描画
         coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
