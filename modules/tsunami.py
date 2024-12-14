@@ -136,6 +136,7 @@ def generate_map(tsunami_alert_areas):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合は作成
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
         print(f"地図を保存しました: {output_path}")
+        plt.close(fig)  # メモリ解放のために図を閉じる
         return output_path
 
     except Exception as e:
