@@ -179,6 +179,10 @@ def generate_map(tsunami_alert_areas):
         coastline_gdf_local = coastline_gdf[coastline_gdf.is_valid]  # 有効なジオメトリのみ残す
         coastline_gdf_local = coastline_gdf_local[coastline_gdf_local.geometry.notnull()]  # ジオメトリがNULLでないものを残す
 
+        # 無効なジオメトリを修正
+        print("無効なジオメトリを修正しています...")
+        coastline_gdf_local["geometry"] = coastline_gdf_local["geometry"].buffer(0)  # ジオメトリの修正
+
         # 海岸線の描画
         print("海岸線の描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
