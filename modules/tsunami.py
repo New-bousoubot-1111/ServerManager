@@ -21,8 +21,10 @@ GEOJSON_REGION_FIELD = 'nam_ja'
 gdf = gpd.read_file(GEOJSON_PATH)
 
 REGION_MAPPING = {
-    "小笠原諸島": "Tokyo To",
-    "伊豆諸島": "Tokyo To"
+    "沖縄本島地方": "沖縄県",
+    "宮古島・八重山地方": "沖縄県",
+    "小笠原諸島": "東京都",
+    "伊豆諸島": "東京都"
 }
 
 def match_region(area_name, geojson_names):
