@@ -28,8 +28,6 @@ try:
     print("GeoJSONデータ:", gdf.head())
     print("海岸線データ:", coastline_gdf.head())
     print(coastline_gdf.geometry)
-    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-    print(coastline_buffer.head())
 except Exception as e:
     print("GeoJSONファイルの読み込みエラー:", e)
     raise
@@ -51,6 +49,8 @@ try:
     # 元のCRS（WGS84）に戻す
     coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
     print("CRSを元に戻しました:", coastline_buffer.crs)
+    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+    print(coastline_buffer.head())
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
