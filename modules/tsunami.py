@@ -59,6 +59,28 @@ REGION_MAPPING = {
     "伊豆諸島": "東京都"
 }
 
+# 海岸線データを修復する関数
+def fix_geometry(gdf):
+    """GeoDataFrameのジオメトリを修復"""
+    gdf["geometry"] = gdf["geometry"].buffer(0)
+    return gdf
+
+# 海岸線データを修正
+print("海岸線データの修復中...")
+coastline_gdf = fix_geometry(coastline_gdf)
+
+# バッファを作成
+print("バッファを作成中...")
+buffer_distance = 5000  # 5km
+coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+
+# バッファを修復
+print("バッファの修復中...")
+coastline_buffer = coastline_buffer.buffer(0)
+
+# CRSを元に戻す
+coastline_buffer = coastline_buffer.to_crs(epsg=4326)
+
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
     if area_name in geojson_names:
