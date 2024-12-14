@@ -173,14 +173,15 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
+        # 海岸線バッファをGeoDataFrameに変換
+        print("海岸線バッファの処理中...")
+        coastline_buffer_gdf = gpd.GeoDataFrame(geometry=coastline_buffer, crs=gdf.crs)
+
         # 海岸線バッファと交差する地域に色を付ける
         print("海岸線バッファとの交差判定を実施中...")
         for idx, region in gdf.iterrows():
             region_geometry = region.geometry
-            intersects = coastline_buffer.intersects(region_geometry).any()
-            print(f"地域: {region['nam_ja']}, 交差: {intersects}")
-            # 海岸線のバッファと交差する地域に色を付ける
-            if coastline_buffer.intersects(region_geometry).any():
+            if coastline_buffer_gdf.intersects(region_geometry).any():
                 gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色に設定
 
         # 津波警報エリアの色設定
@@ -196,21 +197,23 @@ def generate_map(tsunami_alert_areas):
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+        ax.set_xlim([122, 153])  # 東経122度～153度
+        ax.set_ylim([20, 46])    # 北緯20度～46度
+
+        # 海岸線バッファを背景に描画
+        coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
+
+        # 津波警報地域を描画
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
         # 軸非表示
         ax.set_axis_off()
+        plt.legend()
 
         # 出力パスに保存
         output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合
-
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-        coastline_buffer_gdf = gpd.GeoDataFrame(geometry=[coastline_buffer], crs=gdf.crs)
-        coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, label="Coastline Buffer")
-        plt.legend()
         plt.close()
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
