@@ -8,6 +8,7 @@ from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
 import os
+from colorama import Fore
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
