@@ -211,6 +211,9 @@ def generate_map(tsunami_alert_areas):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合
 
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        coastline_buffer_gdf = gpd.GeoDataFrame(geometry=[coastline_buffer], crs=gdf.crs)
+        coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, label="Coastline Buffer")
+        plt.legend()
         plt.close()
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
