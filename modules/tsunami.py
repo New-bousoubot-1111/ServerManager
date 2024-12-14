@@ -176,6 +176,12 @@ def generate_map(tsunami_alert_areas):
         # 海岸線バッファをGeoDataFrameに変換
         print("海岸線バッファの処理中...")
         coastline_buffer_gdf = gpd.GeoDataFrame(geometry=coastline_buffer, crs=gdf.crs)
+        print(coastline_buffer_gdf.is_valid)
+        print(gdf.is_valid)
+        coastline_buffer_gdf = coastline_buffer_gdf[coastline_buffer_gdf.is_valid]
+        gdf = gdf[gdf.is_valid]
+        coastline_buffer_gdf.plot()
+        plt.show()
 
         # 海岸線バッファと交差する地域に色を付ける
         print("海岸線バッファとの交差判定を実施中...")
