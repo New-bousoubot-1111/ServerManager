@@ -15,7 +15,7 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_REGION_FIELD = 'nam_ja'
+GEOJSON_REGION_FIELD = 'tags'  # Overpass APIのデータのtagsフィールドを使用
 
 # フォルダ作成（必要な場合）
 os.makedirs("images", exist_ok=True)
@@ -156,7 +156,7 @@ def create_embed(data):
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成を開始します...")
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
+    geojson_names = gdf['properties'].apply(lambda x: x.get('name', '')).tolist()
     print(f"GeoJSON内の地域名: {geojson_names}")
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
@@ -165,7 +165,7 @@ def generate_map(tsunami_alert_areas):
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
             print(f"一致した地域: {matched_region}")
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+            gdf.loc[gdf['properties'].apply(lambda x: x.get('name', '') == matched_region), "color"] = ALERT_COLORS.get(alert_type, "white")
         else:
             print(f"一致しない地域: {area_name}")
 
