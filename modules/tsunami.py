@@ -90,9 +90,9 @@ def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
-def is_near_coastline(region):
+def is_near_coastline(region_geometry):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.intersects(region).any()
+    return coastline_buffer.intersects(region_geometry).any()  # 修正
 
 def create_embed(data):
     alert_levels = {
