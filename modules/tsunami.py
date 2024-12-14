@@ -203,6 +203,9 @@ def generate_map(tsunami_alert_areas):
         ax.set_ylim([-90, 90])    # 緯度の範囲
         ax.set_aspect('equal')
 
+        coastline_buffer_gdf = coastline_buffer_gdf[coastline_buffer_gdf.is_valid]
+        gdf = gdf[gdf.is_valid]
+
         # 海岸線バッファを背景に描画
         coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
 
