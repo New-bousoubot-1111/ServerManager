@@ -42,14 +42,14 @@ try:
     # 空のジオメトリを削除
     coastline_gdf = coastline_gdf[~coastline_gdf.is_empty]
 
-    # 投影座標系に変換してバッファ生成
-    coastline_gdf = coastline_gdf.to_crs(epsg=4326)  # WGS84（緯度経度）
+    # 座標系をEPSG:3857（Webメルカトル）に変換してバッファ生成
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系（Web Mercator）
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
     print("バッファ生成成功:", coastline_buffer.head())
 
     # 元のCRS（WGS84）に戻す
-    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=4326).to_crs(epsg=4326)
+    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
     print("CRSを元に戻しました:", coastline_buffer.crs)
 except Exception as e:
     print("海岸線データの処理エラー:", e)
