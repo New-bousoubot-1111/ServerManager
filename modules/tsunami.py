@@ -46,14 +46,19 @@ try:
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
     print("バッファ生成成功:", coastline_buffer.head())
 
-    # バッファの確認
-    print("バッファの確認...")
-    coastline_buffer.plot()  # バッファをプロット
-    plt.show()  # バッファの図を表示
+    # バッファをプロット（CRS変換後）
+    coastline_buffer.plot()
+    plt.title("Coastline Buffer (EPSG:3857)")
+    plt.show()  # バッファを表示
 
     # 元のCRS（WGS84）に戻す
     coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
     print("CRSを元に戻しました:", coastline_buffer.crs)
+
+    # 元の座標系でバッファをプロット
+    coastline_buffer.plot()
+    plt.title("Coastline Buffer (EPSG:4326)")
+    plt.show()  # 再度、元のCRSで表示
 
 except Exception as e:
     print("海岸線データの処理エラー:", e)
