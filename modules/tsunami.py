@@ -3,7 +3,6 @@ import requests
 from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
@@ -16,10 +15,12 @@ with open('json/config.json', 'r') as f:
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"
+COASTLINE_PATH = "./images/japan_coastline.geojson"
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
+coastline_gdf = gpd.read_file(COASTLINE_PATH)
 
 REGION_MAPPING = {
     "沖縄本島地方": "Okinawa Ken",
@@ -39,6 +40,36 @@ def match_region(area_name, geojson_names):
     # Fuzzyマッチング
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
+
+def generate_map(tsunami_alert_areas):
+    """津波警報地図を生成し、ローカルパスを返す"""
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
+    gdf["color"] = "#767676"  # 全地域を灰色に設定
+    
+    for area_name, alert_type in tsunami_alert_areas.items():
+        matched_region = match_region(area_name, geojson_names)
+        if matched_region:
+            # 対象地域の行政ポリゴンを取得
+            region_gdf = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region]
+            # 海岸線との交差部分を取得
+            coastal_region = gpd.overlay(region_gdf, coastline_gdf, how="intersection")
+            if not coastal_region.empty:
+                coastal_region["color"] = ALERT_COLORS.get(alert_type, "white")
+                gdf.update(coastal_region)  # 塗り分け結果を反映
+    
+    # 地図を描画
+    fig, ax = plt.subplots(figsize=(15, 18))
+    fig.patch.set_facecolor('#2a2a2a')
+    ax.set_facecolor("#2a2a2a")
+    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+    ax.set_axis_off()
+
+    output_path = "images/tsunami.png"
+    plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+    plt.close()
+    return output_path
 
 def create_embed(data):
     alert_levels = {
@@ -96,29 +127,6 @@ def create_embed(data):
             inline=False
         )
     return embed
-
-def generate_map(tsunami_alert_areas):
-    """津波警報地図を生成し、ローカルパスを返す"""
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
-    gdf["color"] = "#767676"  # 全地域を灰色に設定
-
-    for area_name, alert_type in tsunami_alert_areas.items():
-        matched_region = match_region(area_name, geojson_names)
-        if matched_region:
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
-
-    fig, ax = plt.subplots(figsize=(15, 18))
-    fig.patch.set_facecolor('#2a2a2a')
-    ax.set_facecolor("#2a2a2a")
-    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
-    gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-    ax.set_axis_off()
-
-    output_path = "images/tsunami.png"
-    plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
-    plt.close()
-    return output_path
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
