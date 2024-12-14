@@ -3,6 +3,7 @@ import requests
 from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
@@ -14,33 +15,36 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan_map.json"
-GEOJSON_REGION_FIELD = 'N03_001'
+GEOJSON_PATH = "./images/japan.geojson"
+GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
 
 REGION_MAPPING = {
-    "沖縄本島地方": "沖縄県",
-    "宮古島・八重山地方": "沖縄県",
+    "沖縄本島地方": "Okinawa Ken",
+    "宮古島・八重山地方": "Okinawa Ken",
     "小笠原諸島": "東京都",
     "伊豆諸島": "東京都"
 }
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
+    # 直接一致を試みる
     if area_name in geojson_names:
         return area_name
+    # マッピングの利用
     if area_name in REGION_MAPPING:
         return REGION_MAPPING[area_name]
+    # Fuzzyマッチング
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
 def create_embed(data):
     alert_levels = {
-        "Advisory": {"title": "大津波警報", "color": 0x800080},
-        "Warning": {"title": "津波警報", "color": 0xff0000},
-        "Watch": {"title": "津波注意報", "color": 0xffff00}
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
     embed_title = "津波情報"
     embed_color = 0x00FF00
@@ -106,8 +110,8 @@ def generate_map(tsunami_alert_areas):
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
     ax.set_facecolor("#2a2a2a")
-    ax.set_xlim([122, 153])
-    ax.set_ylim([20, 46])
+    ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+    ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
@@ -150,15 +154,19 @@ class tsunami(commands.Cog):
                 print("津波データが空です。")
                 return
 
-            # データを時刻順にソート
-            data.sort(key=lambda tsunami: parser.parse(tsunami["time"]), reverse=True)
+            latest_date = max(parser.parse(tsunami["time"]).date() for tsunami in data)
+            filtered_tsunamis = [
+                tsunami for tsunami in data
+                if parser.parse(tsunami["time"]).date() == latest_date
+            ]
+            filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
 
             tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
             if not tsunami_channel:
                 print("送信先チャンネルが見つかりません。")
                 return
 
-            for tsunami in data:
+            for tsunami in filtered_tsunamis:
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                     continue
