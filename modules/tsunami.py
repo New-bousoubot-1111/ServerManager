@@ -1,121 +1,111 @@
 import json
 import requests
+from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 from fuzzywuzzy import process
 from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
-import os
-from colorama import Fore
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
+GEOJSON_PATH = "./images/japan.geojson"
+GEOJSON_REGION_FIELD = 'nam_ja'
 
-# フォルダ作成（必要な場合）
-os.makedirs("images", exist_ok=True)
+# GeoJSONデータの読み込み
+gdf = gpd.read_file(GEOJSON_PATH)
 
-# P2P Quake APIから津波警報地域を取得
-def fetch_tsunami_alerts():
-    """P2P Quake APIから津波警報地域を取得"""
-    url = "https://api.p2pquake.net/v2/jma/tsunami"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        return response.json()  # 津波情報をJSON形式で返す
-    else:
-        raise ValueError(f"津波情報APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
+REGION_MAPPING = {
+    "沖縄本島地方": "Okinawa Ken",
+    "宮古島・八重山地方": "Okinawa Ken",
+    "小笠原諸島": "東京都",
+    "伊豆諸島": "東京都"
+}
 
-# Overpass APIからGeoJSONデータを取得
-def fetch_geojson_from_overpass(area_name):
-    """Overpass APIからGeoJSON形式のデータを取得（エリア名を指定）"""
-    url = "http://overpass-api.de/api/interpreter"
-    
-    # エリアIDを取得するためのクエリを作成
-    query_area_id = f'[out:json]; area["name:ja"="{area_name}"]; out id;'
-    
-    # エリアIDを取得
-    response_area = requests.get(url, params={'data': query_area_id})
-    if response_area.status_code != 200:
-        raise ValueError(f"エリアIDの取得に失敗しました。HTTPステータスコード: {response_area.status_code}")
-    
-    area_data = response_area.json()
-    if not area_data.get("elements"):
-        raise ValueError(f"エリア {area_name} のIDを取得できませんでした。")
+def match_region(area_name, geojson_names):
+    """地域名をGeoJSONデータと一致させる"""
+    # 直接一致を試みる
+    if area_name in geojson_names:
+        return area_name
+    # マッピングの利用
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
+    # Fuzzyマッチング
+    best_match, score = process.extractOne(area_name, geojson_names)
+    return best_match if score >= 80 else None
 
-    # エリアIDを取得
-    area_id = area_data["elements"][0]["id"]
-    print(f"エリアID: {area_id}")
+def create_embed(data):
+    alert_levels = {
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
+    }
+    embed_title = "津波情報"
+    embed_color = 0x00FF00
 
-    # エリアIDを使用してノード、ウェイ、リレーションを取得するクエリを作成
-    query = f"""
-    [out:json];
-    area({area_id});  # エリアIDを使用
-    (node(area); way(area); relation(area););
-    out geom;
-    """
-    
-    # エリアIDを使ってノード、ウェイ、リレーションを取得
-    response = requests.get(url, params={'data': query})
-    
-    if response.status_code == 200:
-        raw_data = response.json()
-        features = []
+    levels_in_data = [area.get("grade") for area in data.get("areas", [])]
+    for level in ["Advisory", "Warning", "Watch"]:
+        if level in levels_in_data:
+            embed_title = alert_levels[level]["title"]
+            embed_color = alert_levels[level]["color"]
+            break
 
-        # ノード、ウェイ、リレーションをGeoJSONのフィーチャー形式に変換
-        for element in raw_data.get("elements", []):
-            if element["type"] == "node":
-                features.append({
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [element["lon"], element["lat"]],
-                    },
-                    "properties": element.get("tags", {}),
-                })
-            elif element["type"] == "way":
-                coordinates = [[nd["lon"], nd["lat"]] for nd in element.get("geometry", [])]
-                features.append({
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "LineString" if len(coordinates) == 2 else "Polygon",
-                        "coordinates": coordinates if len(coordinates) == 2 else [coordinates],
-                    },
-                    "properties": element.get("tags", {}),
-                })
-            elif element["type"] == "relation":
-                # リレーションの処理（必要に応じて拡張）
+    embed = Embed(title=embed_title, color=embed_color)
+    tsunami_time = parser.parse(data.get("time", "不明"))
+    formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
+
+    if data.get("areas"):
+        embed.description = f"{embed_title}が発表されました\n安全な場所に避難してください"
+        embed.add_field(name="発表時刻", value=formatted_time, inline=False)
+
+    for area in data.get("areas", []):
+        area_name = area["name"]
+        first_height = area.get("firstHeight", {})
+        maxHeight = area.get("maxHeight", {})
+        condition = first_height.get("condition", "")
+        description = maxHeight.get("description", "不明")
+        arrival_time = first_height.get("arrivalTime", "不明")
+
+        if arrival_time != "不明":
+            try:
+                arrival_time = parser.parse(arrival_time).strftime('%H時%M分')
+                embed.add_field(
+                    name=area_name,
+                    value=f"到達予想時刻: {arrival_time}\n予想高さ: {description}\n{condition}",
+                    inline=False
+                )
+            except ValueError:
                 pass
+        elif arrival_time == "不明":
+            embed.add_field(
+                name=area_name,
+                value=f"予想高さ: {description}\n{condition}",
+                inline=False
+            )
 
-        # GeoJSON形式を構築
-        geojson_data = {
-            "type": "FeatureCollection",
-            "features": features,
-        }
+    if not data.get("areas"):
+        embed.add_field(
+            name=f"{formatted_time}頃に津波警報、注意報等が解除されました。",
+            value="念のため、今後の情報に気をつけてください。",
+            inline=False
+        )
+    return embed
 
-        # フィーチャーが存在する場合に返す
-        if len(geojson_data['features']) > 0:
-            return geojson_data
-        else:
-            raise ValueError("GeoJSONデータに特徴が含まれていません。")
-    else:
-        raise ValueError(f"Overpass APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
-
-# 地図を生成する関数
-def generate_map(tsunami_alert_areas, geojson_data):
+def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
-    geojson_names = [feature['properties'].get('name', '') for feature in geojson_data['features']]
-    gdf = gpd.GeoDataFrame.from_features(geojson_data['features'])
+    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     for area_name, alert_type in tsunami_alert_areas.items():
-        matched_region = process.extractOne(area_name, geojson_names)
-        if matched_region and matched_region[1] >= 80:  # 一致度が80%以上
-            gdf.loc[gdf['properties'].apply(lambda x: x.get('name', '') == matched_region[0]), "color"] = ALERT_COLORS.get(alert_type, "white")
+        matched_region = match_region(area_name, geojson_names)
+        if matched_region:
+            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
@@ -130,7 +120,6 @@ def generate_map(tsunami_alert_areas, geojson_data):
     plt.close()
     return output_path
 
-# 津波警報情報を取得し、地図を生成して送信する
 class tsunami(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -181,24 +170,19 @@ class tsunami(commands.Cog):
                 tsunami_id = tsunami.get("id")
                 if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
                     continue
-
+                embed = create_embed(tsunami)
                 tsunami_alert_areas = {
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
 
-                # Overpass APIを使って、津波警報地域のGeoJSONデータを取得
-                for area_name in tsunami_alert_areas.keys():
-                    geojson_data = fetch_geojson_from_overpass(area_name)
-
-                    # 地図を生成
-                    map_path = generate_map(tsunami_alert_areas, geojson_data)
-                    embed = create_embed(tsunami)
+                if tsunami_alert_areas:
+                    map_path = generate_map(tsunami_alert_areas)
                     embed.set_image(url="attachment://tsunami.png")
-
-                    # Discordに送信
                     with open(map_path, "rb") as file:
                         discord_file = File(file, filename="tsunami.png")
                         await tsunami_channel.send(embed=embed, file=discord_file)
+                else:
+                    await tsunami_channel.send(embed=embed)
 
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
