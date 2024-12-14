@@ -197,8 +197,16 @@ def generate_map(tsunami_alert_areas):
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        
-        ax.set_aspect('auto')    # アスペクト比を自動調整
+
+        # 座標系をEPSG:4326に設定（緯度経度）
+        gdf = gdf.to_crs(epsg=4326)
+        coastline_buffer_gdf = coastline_buffer_gdf.to_crs(epsg=4326)
+
+        # 描画範囲を設定 (緯度経度の範囲)
+        ax.set_xlim([-180, 180])  # 経度の範囲
+        ax.set_ylim([-90, 90])    # 緯度の範囲
+
+        ax.set_aspect('auto')  # アスペクト比を自動調整
 
         # 海岸線バッファを背景に描画
         coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
