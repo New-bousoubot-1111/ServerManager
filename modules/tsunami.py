@@ -45,6 +45,7 @@ try:
     coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
     buffer_distance = 0.1  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)  # バッファ生成
+    coastline_buffer = unary_union(coastline_buffer)
     print("バッファ生成成功:", coastline_buffer.head())
 
     # バッファをプロット（CRS変換後）
@@ -65,7 +66,6 @@ except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
 
-coastline_buffer = unary_union(coastline_buffer)
 gdf['geometry'] = gdf['geometry'].simplify(tolerance=0.01, preserve_topology=True)
 coastline_buffer = coastline_buffer.simplify(tolerance=0.01, preserve_topology=True)
 
@@ -89,7 +89,7 @@ coastline_gdf = fix_geometry(coastline_gdf)
 
 # バッファを作成
 print("バッファを作成中...")
-buffer_distance = 5000  # 5km
+buffer_distance = 0.1  # 5km
 coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
 
 # バッファを修復
