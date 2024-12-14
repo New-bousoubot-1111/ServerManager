@@ -159,6 +159,14 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
+        # ジオメトリの無効値を修正
+        print("ジオメトリの無効値を確認中...")
+        if not coastline_buffer.is_valid.all():
+            coastline_buffer = coastline_buffer.buffer(0)  # 無効ジオメトリの修正
+
+        if not gdf.is_valid.all():
+            gdf = gdf.buffer(0)  # 無効ジオメトリの修正
+
         # バッファとの交差判定
         print("海岸線との交差判定を実施中...")
         for idx, region in gdf.iterrows():
@@ -179,6 +187,8 @@ def generate_map(tsunami_alert_areas):
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
+
+        # 明示的に描画範囲を設定
         ax.set_xlim([122, 153])  # 東経122度～153度
         ax.set_ylim([20, 46])    # 北緯20度～46度
 
