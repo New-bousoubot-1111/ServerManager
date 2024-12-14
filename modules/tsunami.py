@@ -174,10 +174,10 @@ def generate_map(tsunami_alert_areas):
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-        # 空のジオメトリを削除
+        # 空のジオメトリを削除（ローカル変数に変更）
         print("空のジオメトリを削除しています...")
-        coastline_gdf = coastline_gdf[coastline_gdf.is_valid]  # 有効なジオメトリのみ残す
-        coastline_gdf = coastline_gdf[coastline_gdf.geometry.notnull()]  # ジオメトリがNULLでないものを残す
+        coastline_gdf_local = coastline_gdf[coastline_gdf.is_valid]  # 有効なジオメトリのみ残す
+        coastline_gdf_local = coastline_gdf_local[coastline_gdf_local.geometry.notnull()]  # ジオメトリがNULLでないものを残す
 
         # 海岸線の描画
         print("海岸線の描画中...")
@@ -191,7 +191,7 @@ def generate_map(tsunami_alert_areas):
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
         # 海岸線の描画（青色で塗りつぶし）
-        coastline_gdf.plot(ax=ax, color="lightblue", edgecolor="darkblue", linewidth=1)
+        coastline_gdf_local.plot(ax=ax, color="lightblue", edgecolor="darkblue", linewidth=1)
 
         # 軸非表示
         ax.set_axis_off()
