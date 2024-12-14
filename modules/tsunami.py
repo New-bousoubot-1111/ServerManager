@@ -1,15 +1,13 @@
 import json
 import requests
-from colorama import Fore
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
 from fuzzywuzzy import process
-from nextcord.ext import commands, tasks
-from nextcord import File, Embed
+import os
 from datetime import datetime
 from dateutil import parser
-import os
+from nextcord.ext import commands, tasks
+from nextcord import File, Embed
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
@@ -18,38 +16,81 @@ GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
 print("GeoJSONファイルの読み込み中...")
-gdf = gpd.read_file(GEOJSON_PATH)
-coastline_gdf = gpd.read_file(COASTLINE_PATH)
-print("GeoJSONデータ:", gdf.head())
-print("海岸線データ:", coastline_gdf.head())
+try:
+    gdf = gpd.read_file(GEOJSON_PATH)
+    coastline_gdf = gpd.read_file(COASTLINE_PATH)
+    print("GeoJSONデータ:", gdf.head())
+    print("海岸線データ:", coastline_gdf.head())
+except Exception as e:
+    print("GeoJSONファイルの読み込みエラー:", e)
+    raise
 
 # 海岸線データの処理
 print("海岸線データの処理中...")
-if coastline_gdf.crs is None:
-    print("CRSが設定されていません。WGS84に設定します。")
-    coastline_gdf.set_crs(epsg=4326, inplace=True)
-print("元のCRS:", coastline_gdf.crs)
+try:
+    if coastline_gdf.crs is None:
+        print("CRSが設定されていません。WGS84に設定します。")
+        coastline_gdf.set_crs(epsg=4326, inplace=True)
+    print("元のCRS:", coastline_gdf.crs)
 
-# 投影座標系に変換してバッファ生成
-coastline_gdf = coastline_gdf.to_crs(epsg=3857)
-buffer_distance = 5000  # 5000メートル（5km）のバッファ
+    # 投影座標系に変換してバッファ生成
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)
+    buffer_distance = 5000  # 5000メートル（5km）のバッファ
+    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+    print("バッファ生成成功:", coastline_buffer.head())
+
+    # 元のCRS（WGS84）に戻す
+    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
+    print("CRSを元に戻しました:", coastline_buffer.crs)
+except Exception as e:
+    print("海岸線データの処理エラー:", e)
+    raise
+
+REGION_MAPPING = {
+    "沖縄本島地方": "沖縄県",
+    "宮古島・八重山地方": "沖縄県",
+    "小笠原諸島": "東京都",
+    "伊豆諸島": "東京都"
+}
+
+# 海岸線データを修復する関数
+def fix_geometry(gdf):
+    """GeoDataFrameのジオメトリを修復"""
+    gdf["geometry"] = gdf["geometry"].buffer(0)
+    return gdf
+
+# 海岸線データを修正
+print("海岸線データの修復中...")
+coastline_gdf = fix_geometry(coastline_gdf)
+
+# バッファを作成
+print("バッファを作成中...")
+buffer_distance = 5000  # 5km
 coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-print("バッファ生成成功:", coastline_buffer.head())
 
-# 元のCRS（WGS84）に戻す
-coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
-print("CRSを元に戻しました:", coastline_buffer.crs)
+# バッファを修復
+print("バッファの修復中...")
+coastline_buffer = coastline_buffer.buffer(0)
+
+# CRSを元に戻す
+coastline_buffer = coastline_buffer.to_crs(epsg=4326)
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
     if area_name in geojson_names:
         return area_name
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
-def is_near_coastline(region):
-    """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.apply(lambda x: x.intersects(region)).any()
+def highlight_nearby_coastline(region):
+    """地域の周りの海岸線部分に色を付ける"""
+    # 地域ジオメトリと海岸線ジオメトリの交差判定
+    nearby_coastlines = coastline_gdf[coastline_gdf.geometry.intersects(region)]
+    if not nearby_coastlines.empty:
+        return nearby_coastlines
+    return None
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
@@ -58,16 +99,6 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
-        # バッファとの交差判定（修正）
-        print("海岸線との交差判定を実施中...")
-        for idx, region in gdf.iterrows():
-            region_geometry = region.geometry
-            if is_near_coastline(region_geometry):
-                print(f"地域 {region[GEOJSON_REGION_FIELD]} は海岸線のバッファに近い")
-                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
-            else:
-                print(f"地域 {region[GEOJSON_REGION_FIELD]} は海岸線のバッファに近くない")
-
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
@@ -76,6 +107,15 @@ def generate_map(tsunami_alert_areas):
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
+        # 地域ごとの近くの海岸線をハイライト
+        print("地域から近い海岸線をハイライト中...")
+        for idx, region in gdf.iterrows():
+            region_geometry = region.geometry
+            nearby_coastlines = highlight_nearby_coastline(region_geometry)
+            if nearby_coastlines is not None:
+                # 海岸線部分に色を付ける
+                coastline_gdf.loc[nearby_coastlines.index, "color"] = "blue"  # 近い海岸線を青色に設定
+
         # 地図の描画
         print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
@@ -83,7 +123,10 @@ def generate_map(tsunami_alert_areas):
         ax.set_facecolor("#2a2a2a")
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+
+        # 地域と海岸線を描画
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+        coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], edgecolor="black", linewidth=1)
 
         # 軸非表示
         ax.set_axis_off()
@@ -119,8 +162,8 @@ class tsunami(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "|tsunami       |" + Fore.RESET)
-        print(Fore.BLUE + "|--------------|" + Fore.RESET)
+        print("|tsunami       |")
+        print("|--------------|")
         self.check_tsunami.start()
 
     @tasks.loop(minutes=1)
@@ -157,11 +200,7 @@ class tsunami(commands.Cog):
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
                     embed.set_image(url="attachment://tsunami.png")
-                    with open(map_path, "rb") as file:
-                        discord_file = File(file, filename="tsunami.png")
-                        await tsunami_channel.send(embed=embed, file=discord_file)
-                else:
-                    await tsunami_channel.send(embed=embed)
+                    await tsunami_channel.send(embed=embed, files=[File(map_path, "tsunami.png")])
 
                 self.tsunami_sent_ids.add(tsunami_id)
                 self.save_tsunami_sent_ids()
