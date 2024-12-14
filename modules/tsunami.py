@@ -144,7 +144,7 @@ def generate_map(tsunami_alert_areas):
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = process.extractOne(area_name, geojson_names)[0]
+            matched_region = match_region(area_name, geojson_names)
             print(f"地域名: {area_name}, マッチ結果: {matched_region}")
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
