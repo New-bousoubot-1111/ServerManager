@@ -45,6 +45,11 @@ try:
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
     print("バッファ生成成功:", coastline_buffer.head())
+    # バッファを視覚化して確認
+    print("バッファの確認...")
+    coastline_buffer.plot()
+    plt.show()
+
 
     # 元のCRS（WGS84）に戻す
     coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
@@ -192,7 +197,8 @@ def generate_map(tsunami_alert_areas):
 
         # 出力パスに保存
         output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合は作成
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)  # ディレクトリが存在しない場合
+
         plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
         print(f"地図が正常に保存されました: {output_path}")
