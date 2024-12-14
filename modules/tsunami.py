@@ -10,6 +10,7 @@ from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
 import os
+import pandas as pd
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
