@@ -15,7 +15,6 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_REGION_FIELD = 'tags'  # Overpass APIのデータのtagsフィールドを使用
 
 # フォルダ作成（必要な場合）
 os.makedirs("images", exist_ok=True)
@@ -79,19 +78,9 @@ except Exception as e:
     print(f"GeoJSONデータの読み込みエラー: {e}")
     raise
 
-REGION_MAPPING = {
-    "沖縄本島地方": "Okinawa Ken",
-    "宮古島・八重山地方": "Okinawa Ken",
-    "小笠原諸島": "Tokyo",
-    "伊豆諸島": "Tokyo"
-}
-
+# 地域名の取得方法を変更
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
-    if area_name in geojson_names:
-        return area_name
-    if area_name in REGION_MAPPING:
-        return REGION_MAPPING[area_name]
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
@@ -156,7 +145,9 @@ def create_embed(data):
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成を開始します...")
-    geojson_names = gdf['properties'].apply(lambda x: x.get('name', '')).tolist()
+    
+    # `tags` に含まれる地名を直接参照する
+    geojson_names = [feature['properties'].get('name', '') for feature in gdf['features']]
     print(f"GeoJSON内の地域名: {geojson_names}")
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
