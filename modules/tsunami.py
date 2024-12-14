@@ -174,6 +174,11 @@ def generate_map(tsunami_alert_areas):
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
+        # 空のジオメトリを削除
+        print("空のジオメトリを削除しています...")
+        coastline_gdf = coastline_gdf[coastline_gdf.is_valid]  # 有効なジオメトリのみ残す
+        coastline_gdf = coastline_gdf[coastline_gdf.geometry.notnull()]  # ジオメトリがNULLでないものを残す
+
         # 海岸線の描画
         print("海岸線の描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
