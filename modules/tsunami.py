@@ -9,6 +9,20 @@ from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
+import geojson
+
+# ファイルを読み込む
+with open("images/japan_map.json", "r", encoding="utf-8") as f:
+    data = geojson.load(f)
+# 地名を取得
+place_names = []
+for feature in data["features"]:
+    properties = feature.get("properties", {})
+    name = properties.get("N03_003")  # 地名のフィールド
+    if name:
+        place_names.append(name)
+# 結果を表示
+print(place_names)
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
