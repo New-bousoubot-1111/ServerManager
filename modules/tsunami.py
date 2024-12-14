@@ -39,18 +39,31 @@ try:
         coastline_gdf.set_crs(epsg=4326, inplace=True)
     print("元のCRS:", coastline_gdf.crs)
 
-    # 空のジオメトリを削除
-    coastline_gdf = coastline_gdf[~coastline_gdf.is_empty]
+    # ジオメトリのバリデーションと修正
+    coastline_gdf["valid"] = coastline_gdf.is_valid
+    invalid_geometries = coastline_gdf[~coastline_gdf["valid"]]
 
-    # 座標系をEPSG:3857（Webメルカトル）に変換してバッファ生成
+    if not invalid_geometries.empty:
+        print(f"無効なジオメトリが {len(invalid_geometries)} 件あります。修正します。")
+        coastline_gdf["geometry"] = coastline_gdf["geometry"].apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
+        print("無効なジオメトリを修正しました。")
+
+    # バッファ生成
+    coastline_gdf = coastline_gdf[coastline_gdf.is_valid]  # 無効なジオメトリを削除
     coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系（Web Mercator）
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-    print("バッファ生成成功:", coastline_buffer.head())
+    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857)
+    
+    # バッファ後のジオメトリのバリデーション
+    if not coastline_buffer.is_valid.all():
+        print("バッファ後に無効なジオメトリがあります。修正します。")
+        coastline_buffer = coastline_buffer.apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
 
     # 元のCRS（WGS84）に戻す
-    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
+    coastline_buffer = coastline_buffer.to_crs(epsg=4326)
     print("CRSを元に戻しました:", coastline_buffer.crs)
+
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
@@ -144,7 +157,7 @@ def generate_map(tsunami_alert_areas):
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = match_region(area_name, geojson_names)
+            matched_region = process.extractOne(area_name, geojson_names)[0]
             print(f"地域名: {area_name}, マッチ結果: {matched_region}")
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
