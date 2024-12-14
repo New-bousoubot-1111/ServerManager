@@ -15,11 +15,19 @@ with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan.geojson"
+GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
+COASTLINE_PATH = "./images/coastline.geojson"  # 海岸線のGeoJSONファイルのパス
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
 gdf = gpd.read_file(GEOJSON_PATH)
+
+# 海岸線データを読み込む
+coastline_gdf = gpd.read_file(COASTLINE_PATH)
+
+# 海岸線のバッファ領域を作成（距離は調整可能）
+buffer_distance = 0.05  # バッファの距離（度）
+coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
 
 REGION_MAPPING = {
     "沖縄本島地方": "沖縄県",
@@ -39,6 +47,10 @@ def match_region(area_name, geojson_names):
     # Fuzzyマッチング
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
+
+def is_near_coastline(region):
+    """地域が海岸線のバッファ領域と交差するかを判定する"""
+    return coastline_buffer.intersects(region)
 
 def create_embed(data):
     alert_levels = {
@@ -103,6 +115,12 @@ def generate_map(tsunami_alert_areas):
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
+    # 海岸線に近い地域は青色に設定
+    for idx, region in gdf.iterrows():
+        region_geometry = region.geometry
+        if is_near_coastline(region_geometry):
+            gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
+
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
@@ -116,7 +134,7 @@ def generate_map(tsunami_alert_areas):
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
     ax.set_axis_off()
 
-    output_path = "images/tsunami.png"
+    output_path = "images/tsunami_with_coastline.png"
     plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
     plt.close()
     return output_path
