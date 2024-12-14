@@ -42,7 +42,7 @@ try:
 
     # 投影座標系に変換してバッファ生成
     coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
-    buffer_distance = 5000  # 5000メートル（5km）のバッファ
+    buffer_distance = 0.1  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)  # バッファ生成
     print("バッファ生成成功:", coastline_buffer.head())
 
