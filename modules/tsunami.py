@@ -18,7 +18,7 @@ with open("images/japan_map.json", "r", encoding="utf-8") as f:
 place_names = []
 for feature in data["features"]:
     properties = feature.get("properties", {})
-    name = properties.get("N03_003")  # 地名のフィールド
+    name = properties.get("N03_004")  # 地名のフィールド
     if name:
         place_names.append(name)
 # 結果を表示
