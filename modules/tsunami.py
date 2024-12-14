@@ -43,20 +43,27 @@ def match_region(area_name, geojson_names):
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
+    # GeoJSON データの地域名一覧を取得
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
+    
+    # 座標系を統一
+    coastline_gdf = coastline_gdf.to_crs(gdf.crs)
     
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
             # 対象地域の行政ポリゴンを取得
             region_gdf = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region]
-            # 海岸線との交差部分を取得
-            coastal_region = gpd.overlay(region_gdf, coastline_gdf, how="intersection")
-            if not coastal_region.empty:
-                coastal_region["color"] = ALERT_COLORS.get(alert_type, "white")
-                gdf.update(coastal_region)  # 塗り分け結果を反映
-    
+            
+            # オーバーレイ (海岸線との交差部分を取得)
+            try:
+                coastal_region = gpd.overlay(region_gdf, coastline_gdf, how="intersection")
+                if not coastal_region.empty:
+                    gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+            except Exception as e:
+                print(f"Error during overlay operation: {e}")
+
     # 地図を描画
     fig, ax = plt.subplots(figsize=(15, 18))
     fig.patch.set_facecolor('#2a2a2a')
