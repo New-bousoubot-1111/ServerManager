@@ -29,6 +29,19 @@ REGION_MAPPING = {
     "伊豆諸島": "東京都"
 }
 
+def match_region(area_name, geojson_names):
+    """地域名をGeoJSONデータと一致させる"""
+    # 直接一致を試みる
+    if area_name in geojson_names:
+        return area_name
+    # マッピングの利用
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
+    # Fuzzyマッチング
+    best_match, score = process.extractOne(area_name, geojson_names)
+    print(f"Fuzzyマッチング結果: {best_match} (スコア: {score})")  # デバッグログ
+    return best_match if score >= 80 else None
+
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
@@ -73,24 +86,11 @@ def generate_map(tsunami_alert_areas):
         print(f"地図画像の生成中にエラーが発生しました: {e}")
         return None
 
-def match_region(area_name, geojson_names):
-    """地域名をGeoJSONデータと一致させる"""
-    # 直接一致を試みる
-    if area_name in geojson_names:
-        return area_name
-    # マッピングの利用
-    if area_name in REGION_MAPPING:
-        return REGION_MAPPING[area_name]
-    # Fuzzyマッチング
-    best_match, score = process.extractOne(area_name, geojson_names)
-    print(f"Fuzzyマッチング結果: {best_match} (スコア: {score})")  # デバッグログ
-    return best_match if score >= 80 else None
-
 def create_embed(data):
     alert_levels = {
-        "Advisory": {"title": "大津波警報", "color": 0x800080},
-        "Warning": {"title": "津波警報", "color": 0xff0000},
-        "Watch": {"title": "津波注意報", "color": 0xffff00}
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},   # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}    # 黄
     }
     embed_title = "津波情報"
     embed_color = 0x00FF00
@@ -198,19 +198,13 @@ class tsunami(commands.Cog):
                     area["name"]: area.get("grade") for area in tsunami.get("areas", [])
                 }
 
-                # 地図画像の生成ログ
-                print(f"警報地域: {tsunami_alert_areas}")
-
                 if tsunami_alert_areas:
                     map_path = generate_map(tsunami_alert_areas)
-                    if map_path:
+                    if map_path:  # 地図が正常に生成された場合
                         embed.set_image(url="attachment://tsunami.png")
                         with open(map_path, "rb") as file:
                             discord_file = File(file, filename="tsunami.png")
                             await tsunami_channel.send(embed=embed, file=discord_file)
-                    else:
-                        print("地図画像が生成されませんでした。")
-                        await tsunami_channel.send(embed=embed)
                 else:
                     await tsunami_channel.send(embed=embed)
 
