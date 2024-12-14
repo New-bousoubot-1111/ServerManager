@@ -24,10 +24,13 @@ gdf = gpd.read_file(GEOJSON_PATH)
 
 # 海岸線データを読み込む
 coastline_gdf = gpd.read_file(COASTLINE_PATH)
-
-# 海岸線のバッファ領域を作成（距離は調整可能）
-buffer_distance = 0.05  # バッファの距離（度）
+# 海岸線データを適切な投影CRSに変換（ここではEPSG:3857を使用）
+coastline_gdf = coastline_gdf.to_crs(epsg=3857)
+# バッファ領域を作成（距離はメートル単位で指定）
+buffer_distance = 5000  # 5000メートル（5km）のバッファ
 coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+# 再度地理CRS（WGS 84）に戻す
+coastline_buffer = coastline_buffer.to_crs(epsg=4326)
 
 REGION_MAPPING = {
     "沖縄本島地方": "沖縄県",
