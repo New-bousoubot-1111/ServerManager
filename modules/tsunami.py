@@ -29,18 +29,6 @@ REGION_MAPPING = {
     "伊豆諸島": "東京都"
 }
 
-def match_region(area_name, geojson_names):
-    """地域名をGeoJSONデータと一致させる"""
-    # 直接一致を試みる
-    if area_name in geojson_names:
-        return area_name
-    # マッピングの利用
-    if area_name in REGION_MAPPING:
-        return REGION_MAPPING[area_name]
-    # Fuzzyマッチング
-    best_match, score = process.extractOne(area_name, geojson_names)
-    return best_match if score >= 80 else None
-
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
@@ -49,7 +37,10 @@ def generate_map(tsunami_alert_areas):
     coastline_gdf = coastline_gdf.to_crs(gdf.crs)
     
     for area_name, alert_type in tsunami_alert_areas.items():
+        print(f"処理中の地域: {area_name}, 警報タイプ: {alert_type}")  # デバッグログ
         matched_region = match_region(area_name, geojson_names)
+        print(f"一致した地域: {matched_region}")  # デバッグログ
+        
         if matched_region:
             region_gdf = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region]
             if not region_gdf.empty:
@@ -60,6 +51,8 @@ def generate_map(tsunami_alert_areas):
                 except Exception as e:
                     print(f"Error during overlay operation: {e}")
                     continue
+        else:
+            print(f"{area_name} は一致しませんでした。")  # 地名が一致しない場合のログ
 
     # 地図を描画
     try:
@@ -79,6 +72,19 @@ def generate_map(tsunami_alert_areas):
     except Exception as e:
         print(f"地図画像の生成中にエラーが発生しました: {e}")
         return None
+
+def match_region(area_name, geojson_names):
+    """地域名をGeoJSONデータと一致させる"""
+    # 直接一致を試みる
+    if area_name in geojson_names:
+        return area_name
+    # マッピングの利用
+    if area_name in REGION_MAPPING:
+        return REGION_MAPPING[area_name]
+    # Fuzzyマッチング
+    best_match, score = process.extractOne(area_name, geojson_names)
+    print(f"Fuzzyマッチング結果: {best_match} (スコア: {score})")  # デバッグログ
+    return best_match if score >= 80 else None
 
 def create_embed(data):
     alert_levels = {
