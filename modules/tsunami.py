@@ -197,11 +197,14 @@ def generate_map(tsunami_alert_areas):
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([-180, 180])  # 経度の範囲
-        ax.set_ylim([-90, 90])    # 緯度の範囲
+        ax.set_xlim([122, 153])  # 日本の経度範囲
+        ax.set_ylim([24, 45])    # 日本の緯度範囲
         ax.set_aspect('auto')
         print(coastline_buffer_gdf.is_valid)
         print(gdf.is_valid)
+        coastline_buffer_gdf.plot()
+        plt.show()
+
 
 
         # 海岸線バッファを背景に描画
