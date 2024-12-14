@@ -177,6 +177,10 @@ def generate_map(tsunami_alert_areas):
         print("海岸線バッファの処理中...")
         coastline_buffer_gdf = gpd.GeoDataFrame(geometry=coastline_buffer, crs=gdf.crs)
 
+        # 無効なジオメトリを除外
+        coastline_buffer_gdf = coastline_buffer_gdf[coastline_buffer_gdf.is_valid]
+        gdf = gdf[gdf.is_valid]
+
         # 海岸線バッファと交差する地域に色を付ける
         print("海岸線バッファとの交差判定を実施中...")
         for idx, region in gdf.iterrows():
@@ -194,27 +198,25 @@ def generate_map(tsunami_alert_areas):
 
         # 地図の描画
         print("地図を描画中...")
-        print(coastline_buffer_gdf.is_valid)
-        print(gdf.is_valid)
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([-180, 180])  # 経度の範囲
-        ax.set_ylim([-90, 90])    # 緯度の範囲
-        ax.set_aspect('auto')
+        
+        # 日本の経度・緯度範囲に調整
+        ax.set_xlim([122, 153])  # 日本の経度範囲
+        ax.set_ylim([24, 45])    # 日本の緯度範囲
+
+        ax.set_aspect('auto')  # アスペクト比を自動設定
 
         # 海岸線バッファを背景に描画
         coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
-        plt.show()
+
         # 津波警報地域を描画
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
 
         # 軸非表示
         ax.set_axis_off()
         plt.legend()
-
-        coastline_buffer_gdf = coastline_buffer_gdf[coastline_buffer_gdf.is_valid]
-        gdf = gdf[gdf.is_valid]
 
         # 出力パスに保存
         output_path = "images/tsunami.png"
@@ -269,30 +271,25 @@ class tsunami(commands.Cog):
             ]
             filtered_tsunamis.sort(key=lambda tsunami: parser.parse(tsunami["time"]))
 
-            tsunami_channel = self.bot.get_channel(int(config['eew_channel']))
-            if not tsunami_channel:
-                print("送信先チャンネルが見つかりません。")
-                return
-
             for tsunami in filtered_tsunamis:
-                tsunami_id = tsunami.get("id")
-                if not tsunami_id or tsunami_id in self.tsunami_sent_ids:
-                    continue
-                embed = create_embed(tsunami)
-                tsunami_alert_areas = {
-                    area["name"]: area.get("grade") for area in tsunami.get("areas", [])
+                alert_areas = {
+                    area["name"]: area["grade"] for area in tsunami.get("areas", [])
                 }
+                if not alert_areas:
+                    continue
 
-                if tsunami_alert_areas:
-                    map_path = generate_map(tsunami_alert_areas)
-                    embed.set_image(url="attachment://tsunami.png")
-                    with open(map_path, "rb") as file:
-                        discord_file = File(file, filename="tsunami.png")
-                        await tsunami_channel.send(embed=embed, file=discord_file)
-                else:
-                    await tsunami_channel.send(embed=embed)
+                map_path = generate_map(alert_areas)
 
-                self.tsunami_sent_ids.add(tsunami_id)
+                embed = create_embed(tsunami)
+                file = File(map_path, filename="tsunami_alert_map.png")
+                embed.set_image(url="attachment://tsunami_alert_map.png")
+                channel = self.bot.get_channel(config["tsunami_channel_id"])
+
+                for area_name, alert_type in alert_areas.items():
+                    matched_region = match_region(area_name, gdf[GEOJSON_REGION_FIELD].tolist())
+                    if matched_region and matched_region not in self.tsunami_sent_ids:
+                        self.tsunami_sent_ids.add(matched_region)
+                        await channel.send(embed=embed, file=file)
                 self.save_tsunami_sent_ids()
 
 def setup(bot):
