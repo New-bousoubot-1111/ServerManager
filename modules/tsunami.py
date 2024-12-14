@@ -133,12 +133,29 @@ def generate_map(tsunami_alert_areas):
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
+    # 新しいGeoDataFrameを作成（海岸線との交差部分用）
+    affected_coastal_areas = gpd.GeoDataFrame(columns=gdf.columns, crs=gdf.crs)
+
     # 津波警報エリアの色設定
     print("津波警報エリアの色設定を実施中...")
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
         if matched_region:
-            gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+            region_row = gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region]
+            if not region_row.empty:
+                region_geometry = region_row.iloc[0].geometry
+                
+                # 海岸線との交差部分を取得
+                coastal_intersection = coastline_buffer.intersection(region_geometry)
+                coastal_intersection = coastal_intersection[~coastal_intersection.is_empty]  # 空のジオメトリを除外
+                
+                # 新しいエントリを作成
+                for geom in coastal_intersection:
+                    affected_coastal_areas = affected_coastal_areas.append({
+                        GEOJSON_REGION_FIELD: matched_region,
+                        "geometry": geom,
+                        "color": ALERT_COLORS.get(alert_type, "white")
+                    }, ignore_index=True)
 
     # 地図の描画
     print("地図を描画中...")
@@ -147,7 +164,16 @@ def generate_map(tsunami_alert_areas):
     ax.set_facecolor("#2a2a2a")
     ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
     ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+
+    # 全体の背景地図（灰色）を描画
     gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+
+    # 影響を受ける海岸線部分を描画
+    if not affected_coastal_areas.empty:
+        for color in ALERT_COLORS.values():
+            affected_coastal_areas[affected_coastal_areas["color"] == color].plot(
+                ax=ax, color=color, edgecolor="black", linewidth=1.0
+            )
 
     # 軸非表示
     ax.set_axis_off()
