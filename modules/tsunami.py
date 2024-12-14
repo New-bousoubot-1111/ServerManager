@@ -33,6 +33,8 @@ def fetch_geojson_from_overpass():
     
     if response.status_code == 200:
         raw_data = response.json()
+        print(f"Overpass APIレスポンス: {json.dumps(raw_data, indent=2)}")  # レスポンス内容を表示
+
         features = []
 
         # ノード、ウェイ、リレーションをGeoJSONのフィーチャー形式に変換
@@ -65,9 +67,14 @@ def fetch_geojson_from_overpass():
             "type": "FeatureCollection",
             "features": features,
         }
-        return geojson_data
+
+        # フィーチャーが存在する場合に返す
+        if len(geojson_data['features']) > 0:
+            return geojson_data
+        else:
+            raise ValueError("GeoJSONデータに特徴が含まれていません。")
     else:
-        raise ValueError("Overpass APIからデータを取得できませんでした。")
+        raise ValueError(f"Overpass APIからデータを取得できませんでした。HTTPステータスコード: {response.status_code}")
 
 # GeoJSONデータの読み込み
 try:
