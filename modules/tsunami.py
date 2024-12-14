@@ -176,6 +176,8 @@ def generate_map(tsunami_alert_areas):
         print("海岸線バッファとの交差判定を実施中...")
         for idx, region in gdf.iterrows():
             region_geometry = region.geometry
+            intersects = coastline_buffer.intersects(region_geometry).any()
+            print(f"地域: {region['nam_ja']}, 交差: {intersects}")
             # 海岸線のバッファと交差する地域に色を付ける
             if coastline_buffer.intersects(region_geometry).any():
                 gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色に設定
