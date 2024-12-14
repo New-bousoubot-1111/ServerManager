@@ -93,6 +93,8 @@ coastline_buffer = coastline_buffer.buffer(0)
 
 # CRSを元に戻す
 coastline_buffer = coastline_buffer.to_crs(epsg=4326)
+print(gdf.crs)  # 地域データのCRS
+print(coastline_buffer.crs)  # 海岸線バッファのCRS
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
