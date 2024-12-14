@@ -136,7 +136,7 @@ def generate_map(tsunami_alert_areas):
     # 新しいGeoDataFrameを作成（海岸線との交差部分用）
     affected_coastal_areas = gpd.GeoDataFrame(columns=gdf.columns, crs=gdf.crs)
 
-    # 津波警報エリアの色設定
+    # 各地域に対する津波警報エリアの色設定
     print("津波警報エリアの色設定を実施中...")
     for area_name, alert_type in tsunami_alert_areas.items():
         matched_region = match_region(area_name, geojson_names)
@@ -144,18 +144,20 @@ def generate_map(tsunami_alert_areas):
             region_row = gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region]
             if not region_row.empty:
                 region_geometry = region_row.iloc[0].geometry
-                
+
                 # 海岸線との交差部分を取得
                 coastal_intersection = coastline_buffer.intersection(region_geometry)
-                coastal_intersection = coastal_intersection[~coastal_intersection.is_empty]  # 空のジオメトリを除外
-                
-                # 新しいエントリを作成
-                for geom in coastal_intersection:
-                    affected_coastal_areas = affected_coastal_areas.append({
-                        GEOJSON_REGION_FIELD: matched_region,
-                        "geometry": geom,
-                        "color": ALERT_COLORS.get(alert_type, "white")
-                    }, ignore_index=True)
+
+                # 交差部分が空でない場合のみ処理
+                coastal_intersection = coastal_intersection[~coastal_intersection.is_empty]
+                if not coastal_intersection.empty:
+                    # 新しいエントリを作成
+                    for geom in coastal_intersection:
+                        affected_coastal_areas = affected_coastal_areas.append({
+                            GEOJSON_REGION_FIELD: matched_region,
+                            "geometry": geom,
+                            "color": ALERT_COLORS.get(alert_type, "white")
+                        }, ignore_index=True)
 
     # 地図の描画
     print("地図を描画中...")
