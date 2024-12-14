@@ -9,6 +9,7 @@ from nextcord.ext import commands, tasks
 from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
+from shapely.ops import unary_union
 import os
 
 # 設定ファイルの読み込み
@@ -64,6 +65,7 @@ except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
 
+coastline_buffer = unary_union(coastline_buffer)
 
 REGION_MAPPING = {
     "沖縄本島地方": "沖縄県",
