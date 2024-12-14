@@ -40,27 +40,60 @@ try:
         coastline_gdf.set_crs(epsg=4326, inplace=True)
     print("元のCRS:", coastline_gdf.crs)
 
-    # CRSをEPSG:3857に変換
+    # 投影座標系に変換してバッファ生成
     coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
-    print("海岸線データのCRSをEPSG:3857に変換しました:", coastline_gdf.crs)
-
-    # バッファ生成
-    buffer_distance = 5000  # 5km
+    buffer_distance = 0.1  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)  # バッファ生成
     print("バッファ生成成功:", coastline_buffer.head())
 
-    # バッファをプロット（EPSG:3857座標系）
+    # バッファをプロット（CRS変換後）
     coastline_buffer.plot()
     plt.title("Coastline Buffer (EPSG:3857)")
-    plt.show()
+    plt.show()  # バッファを表示
 
-    # バッファをEPSG:3857座標系で保持
-    coastline_buffer = coastline_buffer.set_crs(epsg=3857)
-    print("バッファの座標系をEPSG:3857に設定:", coastline_buffer.crs)
+    # 元のCRS（WGS84）に戻す
+    coastline_buffer = coastline_buffer.set_crs(epsg=3857).to_crs(epsg=4326)  # CRSを元に戻す
+    print("CRSを元に戻しました:", coastline_buffer.crs)
+
+    # 元の座標系でバッファを再度プロット
+    coastline_buffer.plot()
+    plt.title("Coastline Buffer (EPSG:4326)")
+    plt.show()  # 再度、元のCRSで表示
 
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
+
+REGION_MAPPING = {
+    "沖縄本島地方": "沖縄県",
+    "宮古島・八重山地方": "沖縄県",
+    "小笠原諸島": "東京都",
+    "伊豆諸島": "東京都"
+}
+
+# 海岸線データを修復する関数
+def fix_geometry(gdf):
+    """GeoDataFrameのジオメトリを修復"""
+    gdf["geometry"] = gdf["geometry"].buffer(0)
+    return gdf
+
+# 海岸線データを修正
+print("海岸線データの修復中...")
+coastline_gdf = fix_geometry(coastline_gdf)
+
+# バッファを作成
+print("バッファを作成中...")
+buffer_distance = 5000  # 5km
+coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+
+# バッファを修復
+print("バッファの修復中...")
+coastline_buffer = coastline_buffer.buffer(0)
+
+# CRSを元に戻す
+coastline_buffer = coastline_buffer.to_crs(epsg=4326)
+print(gdf.crs)  # 地域データのCRS
+print(coastline_buffer.crs)  # 海岸線バッファのCRS
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
@@ -71,9 +104,9 @@ def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
-def is_near_coastline(region):
+def is_near_coastline(region_geometry):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.intersects(region).any()
+    return coastline_buffer.intersects(region_geometry).any()  # 修正
 
 def create_embed(data):
     alert_levels = {
@@ -165,7 +198,7 @@ def generate_map(tsunami_alert_areas):
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
 
-        # すべてのGeoDataFrameをEPSG:3857に変換
+        # 投影法をEPSG:3857に変換（Web Mercator）
         gdf = gdf.to_crs(epsg=3857)
         coastline_buffer_gdf = coastline_buffer_gdf.to_crs(epsg=3857)
 
