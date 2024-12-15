@@ -152,6 +152,20 @@ def create_embed(data):
         )
     return embed
 
+def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color="#00bfff"):
+    """
+    津波警報エリアに隣接する海岸線を特定し、色を設定する関数
+    :param tsunami_alert_regions: 津波警報が発令されている地域のジオメトリ一覧
+    :param coastline_gdf: 海岸線データのGeoDataFrame
+    :param target_color: 海岸線に設定する色 (デフォルト: 水色)
+    """
+    for idx, coast in coastline_gdf.iterrows():
+        for region in tsunami_alert_regions:
+            # 海岸線が津波警報地域に接しているか交差している場合
+            if coast.geometry.intersects(region) or coast.geometry.touches(region):
+                coastline_gdf.at[idx, "color"] = target_color
+                break
+
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
