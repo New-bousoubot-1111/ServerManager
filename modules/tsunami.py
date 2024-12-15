@@ -158,23 +158,26 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color
     """
     from shapely.geometry import MultiLineString
 
-    # バッファを作成して交差部分を特定
-    coastline_buffer = coastline_gdf.geometry.buffer(5000)  # 5kmバッファ
+    # 海岸線データを初期色で設定
+    coastline_gdf["color"] = "#ffffff"
+
+    # 海岸線データから交差部分のみ抽出
     affected_coastlines = []
-
     for region in tsunami_alert_regions:
-        affected_part = coastline_buffer.intersection(region)
-        if not affected_part.is_empty:
-            affected_coastlines.append(affected_part)
+        for geom in coastline_gdf.geometry:
+            affected_part = geom.intersection(region)
+            if not affected_part.is_empty:
+                affected_coastlines.append(affected_part)
 
-    # 有効な交差部分をマルチラインストリングにまとめる
-    if affected_coastlines:
+    # 有効な交差部分を新しいジオメトリとして格納
+    if affected_coastlines:  # 空でない場合のみ
         affected_geom = MultiLineString(affected_coastlines)
         affected_gdf = gpd.GeoDataFrame(geometry=[affected_geom], crs=coastline_gdf.crs)
         affected_gdf["color"] = target_color
-        return affected_gdf
     else:
-        return gpd.GeoDataFrame(columns=["geometry", "color"], crs=coastline_gdf.crs)
+        affected_gdf = gpd.GeoDataFrame(geometry=[], crs=coastline_gdf.crs)  # 空の場合
+
+    return affected_gdf
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
