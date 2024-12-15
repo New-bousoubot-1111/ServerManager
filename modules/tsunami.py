@@ -190,10 +190,6 @@ def generate_map(tsunami_alert_areas):
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
-        # 有効なジオメトリのみ使用
-        gdf = gdf[gdf.is_valid]
-        coastline_gdf = coastline_gdf[coastline_gdf.is_valid]
-
         # 地図の描画
         print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
