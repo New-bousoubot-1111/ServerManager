@@ -169,7 +169,7 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
 
 def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Regular.ttf"):
     """
-    画像の左上に枠線・テキスト・凡例の色付き線を追加する
+    画像の左上に赤色の外枠・白色の内部枠を含むテキストを追加し、凡例の色付き線を描画する
     :param image_path: 入力画像のパス
     :param output_path: 出力画像のパス
     :param text: 描画するテキスト
@@ -181,19 +181,23 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         draw = ImageDraw.Draw(image)
 
         # テキスト枠の設定
-        box_x, box_y = 20, 20  # 左上からの座標
-        box_width, box_height = 400, 180  # 枠のサイズ
-        border_color = (255, 0, 0)  # 赤色
-        border_width = 4
+        box_x, box_y = 20, 20  # 左上の座標
+        box_width, box_height = 500, 200  # 枠のサイズ
 
-        # 枠を描画
+        # 外枠（赤色）と内枠（白色）の設定
+        outer_border_width = 8
+        inner_border_width = 6
         draw.rectangle(
             [(box_x, box_y), (box_x + box_width, box_y + box_height)],
-            outline=border_color, width=border_width, fill=(255, 255, 255)
+            outline=(255, 0, 0), width=outer_border_width  # 赤色の外枠
+        )
+        draw.rectangle(
+            [(box_x + 4, box_y + 4), (box_x + box_width - 4, box_y + box_height - 4)],
+            outline=(255, 255, 255), width=inner_border_width  # 白色の内枠
         )
 
-        # テキスト描画の設定
-        font_size = 24
+        # テキスト設定
+        font_size = 32  # テキストのサイズを大きめに設定
         try:
             font = ImageFont.truetype(font_path, font_size)
         except Exception:
@@ -201,26 +205,26 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
             font = ImageFont.load_default()
 
         text_color = (0, 0, 0)  # 黒色
-        text_position = (box_x + 10, box_y + 10)
+        text_position = (box_x + 20, box_y + 20)
 
-        # テキストの描画
+        # テキストを追加
         draw.text(text_position, text, fill=text_color, font=font)
 
-        # 凡例の色付き線を描画
-        legend_x, legend_y = box_x + 10, box_y + 80
-        legend_gap = 40
+        # 凡例の色付き線を追加
+        legend_x, legend_y = box_x + 20, box_y + 100
+        legend_gap = 50
 
         # 大津波警報（紫色）
-        draw.line([(legend_x, legend_y), (legend_x + 50, legend_y)], fill=(128, 0, 128), width=8)
-        draw.text((legend_x + 60, legend_y - 10), "大津波警報", fill=text_color, font=font)
+        draw.line([(legend_x, legend_y), (legend_x + 80, legend_y)], fill=(128, 0, 128), width=10)
+        draw.text((legend_x + 100, legend_y - 10), "大津波警報", fill=text_color, font=font)
 
         # 津波警報（赤色）
-        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 50, legend_y + legend_gap)], fill=(255, 0, 0), width=8)
-        draw.text((legend_x + 60, legend_y + legend_gap - 10), "津波警報", fill=text_color, font=font)
+        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 80, legend_y + legend_gap)], fill=(255, 0, 0), width=10)
+        draw.text((legend_x + 100, legend_y + legend_gap - 10), "津波警報", fill=text_color, font=font)
 
         # 津波注意報（黄色）
-        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 50, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=8)
-        draw.text((legend_x + 60, legend_y + 2 * legend_gap - 10), "津波注意報", fill=text_color, font=font)
+        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 80, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=10)
+        draw.text((legend_x + 100, legend_y + 2 * legend_gap - 10), "津波注意報", fill=text_color, font=font)
 
         # 画像を保存
         image.save(output_path)
