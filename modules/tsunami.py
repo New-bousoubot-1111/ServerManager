@@ -183,7 +183,7 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         red_box_x, red_box_y = 20, 20  # 赤枠の左上座標
         red_box_width, red_box_height = 1400, 300  # 赤枠のサイズを大きく
         white_box_y = red_box_y + red_box_height + 60  # 白枠は赤枠の下に設置
-        white_box_width, white_box_height = red_box_width // 2, 600  # 白枠の横幅を半分に、縦幅はそのまま
+        white_box_width, white_box_height = red_box_width // 3, 500  # 白枠の横幅を半分に、縦幅はそのまま
 
         # フォントの設定
         font_size_title = 120  # タイトルのフォントサイズを大きく
