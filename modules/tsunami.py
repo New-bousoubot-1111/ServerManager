@@ -65,21 +65,23 @@ def fix_geometry(gdf):
     gdf["geometry"] = gdf["geometry"].buffer(0)
     return gdf
 
-# 海岸線データを修正
+# 海岸線データを修復
 print("海岸線データの修復中...")
 coastline_gdf = fix_geometry(coastline_gdf)
 
-# バッファを作成
+# バッファを作成する前に投影座標系に変換
 print("バッファを作成中...")
 buffer_distance = 5000  # 5km
+
+if coastline_gdf.crs != "EPSG:3857":
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
+
 coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
 
-# バッファを修復
+# 修復後、元の地理座標系 (WGS84) に戻す
 print("バッファの修復中...")
-coastline_buffer = coastline_buffer.buffer(0)
-
-# CRSを元に戻す
-coastline_buffer = coastline_buffer.to_crs(epsg=4326)
+coastline_buffer = coastline_buffer.buffer(0).to_crs(epsg=4326)
+print("海岸線バッファ生成完了")
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
@@ -164,18 +166,22 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color
     # 海岸線データから交差部分のみ抽出
     affected_coastlines = []
     for region in tsunami_alert_regions:
+        print("処理中の地域ジオメトリ:", region)  # デバッグ出力
         for geom in coastline_gdf.geometry:
+            print("交差チェック対象の海岸線ジオメトリ:", geom)  # デバッグ出力
             affected_part = geom.intersection(region)
             if not affected_part.is_empty:
+                print("交差部分が見つかりました:", affected_part)  # デバッグ出力
                 affected_coastlines.append(affected_part)
 
     # 有効な交差部分を新しいジオメトリとして格納
-    if affected_coastlines:  # 空でない場合のみ
+    if affected_coastlines:
         affected_geom = MultiLineString(affected_coastlines)
         affected_gdf = gpd.GeoDataFrame(geometry=[affected_geom], crs=coastline_gdf.crs)
         affected_gdf["color"] = target_color
     else:
-        affected_gdf = gpd.GeoDataFrame(geometry=[], crs=coastline_gdf.crs)  # 空の場合
+        print("交差する海岸線が見つかりませんでした。")  # デバッグ出力
+        affected_gdf = gpd.GeoDataFrame(geometry=[], crs=coastline_gdf.crs)
 
     return affected_gdf
 
