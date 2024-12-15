@@ -214,6 +214,14 @@ def generate_map(tsunami_alert_areas):
                 idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
                 gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
                 tsunami_alert_regions.append((gdf.at[idx, "geometry"], alert_type))
+        # 海岸線データの読み込み
+        print("海岸線データを読み込み中...")
+        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
+        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
+
+        # 海岸線に色を塗る処理
+        print("隣接する海岸線を特定して色を塗っています...")
+        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, ALERT_COLORS)
 
         # 地図の描画
         print("地図を描画中...")
