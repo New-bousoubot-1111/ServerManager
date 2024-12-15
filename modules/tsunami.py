@@ -1,4 +1,3 @@
-# 必要なライブラリのインポート
 import json
 import requests
 from colorama import Fore
@@ -11,19 +10,14 @@ from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
 import os
-import pandas as pd
-
-# 日本語フォントの設定
-rcParams['font.family'] = 'Noto Sans CJK JP'  # 環境によっては変更が必要
-rcParams['axes.unicode_minus'] = False
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan.geojson"
-COASTLINE_PATH = "./images/coastline.geojson"
+GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
+COASTLINE_PATH = "./images/coastline.geojson"  # 海岸線のGeoJSONファイルのパス
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
@@ -31,9 +25,8 @@ print("GeoJSONファイルの読み込み中...")
 try:
     gdf = gpd.read_file(GEOJSON_PATH)
     coastline_gdf = gpd.read_file(COASTLINE_PATH)
-    # 無効なジオメトリを除外
-    gdf = gdf[gdf.geometry.notnull() & ~gdf.geometry.is_empty]
-    coastline_gdf = coastline_gdf[coastline_gdf.geometry.notnull() & ~coastline_gdf.geometry.is_empty]
+    print("GeoJSONデータ:", gdf.head())
+    print("海岸線データ:", coastline_gdf.head())
 except Exception as e:
     print("GeoJSONファイルの読み込みエラー:", e)
     raise
@@ -44,11 +37,17 @@ try:
     if coastline_gdf.crs is None:
         print("CRSが設定されていません。WGS84に設定します。")
         coastline_gdf.set_crs(epsg=4326, inplace=True)
+    print("元のCRS:", coastline_gdf.crs)
 
-    coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
-    buffer_distance = 5000  # 5km
+    # 投影座標系に変換してバッファ生成
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)
+    buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-    coastline_buffer = coastline_buffer.to_crs(epsg=4326)  # WGS84に戻す
+    print("バッファ生成成功:", coastline_buffer.head())
+
+    # 元のCRS（WGS84）に戻す
+    coastline_buffer = gpd.GeoSeries(coastline_buffer).set_crs(epsg=3857).to_crs(epsg=4326)
+    print("CRSを元に戻しました:", coastline_buffer.crs)
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
@@ -60,6 +59,28 @@ REGION_MAPPING = {
     "伊豆諸島": "東京都"
 }
 
+# 海岸線データを修復する関数
+def fix_geometry(gdf):
+    """GeoDataFrameのジオメトリを修復"""
+    gdf["geometry"] = gdf["geometry"].buffer(0)
+    return gdf
+
+# 海岸線データを修正
+print("海岸線データの修復中...")
+coastline_gdf = fix_geometry(coastline_gdf)
+
+# バッファを作成
+print("バッファを作成中...")
+buffer_distance = 5000  # 5km
+coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+
+# バッファを修復
+print("バッファの修復中...")
+coastline_buffer = coastline_buffer.buffer(0)
+
+# CRSを元に戻す
+coastline_buffer = coastline_buffer.to_crs(epsg=4326)
+
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
     if area_name in geojson_names:
@@ -69,9 +90,9 @@ def match_region(area_name, geojson_names):
     best_match, score = process.extractOne(area_name, geojson_names)
     return best_match if score >= 80 else None
 
-def is_near_coastline(region_geometry):
+def is_near_coastline(region):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.intersects(region_geometry).any()
+    return coastline_buffer.intersects(region).any()
 
 def create_embed(data):
     alert_levels = {
@@ -138,44 +159,53 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
-        # 海岸線データと地域データの修復
-        gdf = fix_invalid_geometries(gdf)
-        coastline_gdf = fix_invalid_geometries(coastline_gdf)
-
-        # 海岸線との交差判定
-        print("海岸線との交差判定を実施中...")
-        for idx, region in gdf.iterrows():
-            if is_near_coastline(region.geometry):
-                gdf.at[idx, "color"] = "blue"
+        # 津波警報エリアをリストで管理
+        tsunami_alert_regions = []
 
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
             matched_region = match_region(area_name, geojson_names)
             if matched_region:
-                gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+                idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
+                gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
+                tsunami_alert_regions.append(gdf.at[idx, "geometry"])
+
+        # 海岸線データの読み込み
+        print("海岸線データを読み込み中...")
+        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
+        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
+
+        # 海岸線に色を塗る処理
+        print("隣接する海岸線を特定して色を塗っています...")
+        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color="#00bfff")
 
         # 地図の描画
         print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        x_min, y_min, x_max, y_max = gdf.total_bounds
-        ax.set_xlim([x_min, x_max])
-        ax.set_ylim([y_min, y_max])
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
-        coastline_gdf.plot(ax=ax, color='black', linewidth=2)
-        ax.set_title("日本津波警報地図", fontsize=16, color="white")
+        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
+        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
 
-        output_file = "./images/tsunami_map.png"
-        plt.savefig(output_file, bbox_inches='tight', pad_inches=0.1, transparent=True)
+        # 地域と海岸線をプロット
+        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+        coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
+
+        # 軸非表示
+        ax.set_axis_off()
+
+        # 出力パスに保存
+        output_path = "images/tsunami.png"
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
-        print("地図生成が完了しました。")
-        return output_file
+        print(f"地図が正常に保存されました: {output_path}")
+        return output_path
+
     except Exception as e:
         print("地図生成エラー:", e)
         raise
-
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
