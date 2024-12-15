@@ -1,3 +1,4 @@
+# 必要なライブラリのインポート
 import json
 import requests
 from colorama import Fore
@@ -12,13 +13,17 @@ from dateutil import parser
 import os
 import pandas as pd
 
+# 日本語フォントの設定
+rcParams['font.family'] = 'Noto Sans CJK JP'  # 環境によっては変更が必要
+rcParams['axes.unicode_minus'] = False
+
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
     config = json.load(f)
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
-GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
-COASTLINE_PATH = "./images/coastline.geojson"  # 海岸線のGeoJSONファイルのパス
+GEOJSON_PATH = "./images/japan.geojson"
+COASTLINE_PATH = "./images/coastline.geojson"
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
@@ -26,9 +31,9 @@ print("GeoJSONファイルの読み込み中...")
 try:
     gdf = gpd.read_file(GEOJSON_PATH)
     coastline_gdf = gpd.read_file(COASTLINE_PATH)
-    print("GeoJSONデータ:", gdf.head())
-    print("海岸線データ:", coastline_gdf.head())
-    print(coastline_gdf.geometry)
+    # 無効なジオメトリを除外
+    gdf = gdf[gdf.geometry.notnull() & ~gdf.geometry.is_empty]
+    coastline_gdf = coastline_gdf[coastline_gdf.geometry.notnull() & ~coastline_gdf.geometry.is_empty]
 except Exception as e:
     print("GeoJSONファイルの読み込みエラー:", e)
     raise
@@ -39,28 +44,11 @@ try:
     if coastline_gdf.crs is None:
         print("CRSが設定されていません。WGS84に設定します。")
         coastline_gdf.set_crs(epsg=4326, inplace=True)
-    print("元のCRS:", coastline_gdf.crs)
 
-    # 投影座標系に変換してバッファ生成
     coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系に変換
-    buffer_distance = 0.1  # 5000メートル（5km）のバッファ
-    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)  # バッファ生成
-    print("バッファ生成成功:", coastline_buffer.head())
-
-    # バッファをプロット（CRS変換後）
-    coastline_buffer.plot()
-    plt.title("Coastline Buffer (EPSG:3857)")
-    plt.show()  # バッファを表示
-
-    # 元のCRS（WGS84）に戻す
-    coastline_buffer = coastline_buffer.set_crs(epsg=3857).to_crs(epsg=4326)  # CRSを元に戻す
-    print("CRSを元に戻しました:", coastline_buffer.crs)
-
-    # 元の座標系でバッファを再度プロット
-    coastline_buffer.plot()
-    plt.title("Coastline Buffer (EPSG:4326)")
-    plt.show()  # 再度、元のCRSで表示
-
+    buffer_distance = 5000  # 5km
+    coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
+    coastline_buffer = coastline_buffer.to_crs(epsg=4326)  # WGS84に戻す
 except Exception as e:
     print("海岸線データの処理エラー:", e)
     raise
@@ -71,30 +59,6 @@ REGION_MAPPING = {
     "小笠原諸島": "東京都",
     "伊豆諸島": "東京都"
 }
-
-# 海岸線データを修復する関数
-def fix_geometry(gdf):
-    """GeoDataFrameのジオメトリを修復"""
-    gdf["geometry"] = gdf["geometry"].buffer(0)
-    return gdf
-
-# 海岸線データを修正
-print("海岸線データの修復中...")
-coastline_gdf = fix_geometry(coastline_gdf)
-
-# バッファを作成
-print("バッファを作成中...")
-buffer_distance = 5000  # 5km
-coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
-
-# バッファを修復
-print("バッファの修復中...")
-coastline_buffer = coastline_buffer.buffer(0)
-
-# CRSを元に戻す
-coastline_buffer = coastline_buffer.to_crs(epsg=4326)
-print(gdf.crs)  # 地域データのCRS
-print(coastline_buffer.crs)  # 海岸線バッファのCRS
 
 def match_region(area_name, geojson_names):
     """地域名をGeoJSONデータと一致させる"""
@@ -107,7 +71,7 @@ def match_region(area_name, geojson_names):
 
 def is_near_coastline(region_geometry):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
-    return coastline_buffer.intersects(region_geometry).any()  # 修正
+    return coastline_buffer.intersects(region_geometry).any()
 
 def create_embed(data):
     alert_levels = {
@@ -167,7 +131,6 @@ def create_embed(data):
         )
     return embed
 
-# 地図生成関数
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
@@ -178,15 +141,13 @@ def generate_map(tsunami_alert_areas):
         # 海岸線との交差判定
         print("海岸線との交差判定を実施中...")
         for idx, region in gdf.iterrows():
-            region_geometry = region.geometry
-            if coastline_buffer.intersects(region_geometry).any():
-                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
+            if is_near_coastline(region.geometry):
+                gdf.at[idx, "color"] = "blue"
 
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = process.extractOne(area_name, geojson_names)[0]
-            print(f"地域名: {area_name}, マッチ結果: {matched_region}")
+            matched_region = match_region(area_name, geojson_names)
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
@@ -195,19 +156,13 @@ def generate_map(tsunami_alert_areas):
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-
-        # 自動的に描画範囲を設定
         x_min, y_min, x_max, y_max = gdf.total_bounds
         ax.set_xlim([x_min, x_max])
         ax.set_ylim([y_min, y_max])
-
-        # 日本の地図描画
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
         coastline_gdf.plot(ax=ax, color='black', linewidth=2)
-
         ax.set_title("日本津波警報地図", fontsize=16, color="white")
 
-        # 画像の保存
         output_file = "./images/tsunami_map.png"
         plt.savefig(output_file, bbox_inches='tight', pad_inches=0.1, transparent=True)
         plt.close()
