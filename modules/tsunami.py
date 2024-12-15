@@ -167,6 +167,7 @@ def create_embed(data):
         )
     return embed
 
+# 地図生成関数
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
@@ -174,70 +175,52 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
-        # 海岸線バッファをGeoDataFrameに変換
-        print("海岸線バッファの処理中...")
-        coastline_buffer_gdf = gpd.GeoDataFrame(geometry=coastline_buffer, crs=gdf.crs)
-
-        # 海岸線バッファと交差する地域に色を付ける
-        print("海岸線バッファとの交差判定を実施中...")
+        # 海岸線との交差判定
+        print("海岸線との交差判定を実施中...")
         for idx, region in gdf.iterrows():
             region_geometry = region.geometry
-            if coastline_buffer_gdf.intersects(region_geometry).any():
-                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色に設定
+            if coastline_buffer.intersects(region_geometry).any():
+                gdf.at[idx, "color"] = "blue"  # 海岸沿いは青色
 
         # 津波警報エリアの色設定
         print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = match_region(area_name, geojson_names)
+            matched_region = process.extractOne(area_name, geojson_names)[0]
             print(f"地域名: {area_name}, マッチ結果: {matched_region}")
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+
+        # 有効なジオメトリのみ使用
         gdf = gdf[gdf.is_valid]
         coastline_gdf = coastline_gdf[coastline_gdf.is_valid]
 
         # 地図の描画
         print("地図を描画中...")
-        print(coastline_buffer_gdf.is_valid)
-        print(gdf.is_valid)
-        gdf_total_bounds = gdf.total_bounds
-        print("gdf total_bounds:", gdf_total_bounds)
-        if any(pd.isna(gdf_total_bounds)) or any(val == float('inf') for val in gdf_total_bounds):
-            print("無効なtotal_boundsが検出されました。範囲を修正します。")
-            # 範囲を適切に修正する
-            gdf_total_bounds = [122.93349315, 20.42274033, 153.98686576, 45.55733109]  # デフォルトの範囲に設定
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        gdf_total_bounds = gdf.total_bounds
-        print("gdf total_bounds:", gdf_total_bounds)  # 範囲を確認
+
+        # 自動的に描画範囲を設定
         x_min, y_min, x_max, y_max = gdf.total_bounds
         ax.set_xlim([x_min, x_max])
         ax.set_ylim([y_min, y_max])
+
         # 日本の地図描画
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
         coastline_gdf.plot(ax=ax, color='black', linewidth=2)
 
-        # 海岸線バッファを背景に描画
-        coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
+        ax.set_title("日本津波警報地図", fontsize=16, color="white")
 
-        # 津波警報地域を描画
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-
-        # 軸非表示
-        ax.set_axis_off()
-        plt.legend()
-
-        # 出力パスに保存
-        output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        # 画像の保存
+        output_file = "./images/tsunami_map.png"
+        plt.savefig(output_file, bbox_inches='tight', pad_inches=0.1, transparent=True)
         plt.close()
-        print(f"地図が正常に保存されました: {output_path}")
-        return output_path
-
+        print("地図生成が完了しました。")
+        return output_file
     except Exception as e:
         print("地図生成エラー:", e)
         raise
+
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
