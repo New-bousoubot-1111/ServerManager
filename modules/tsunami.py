@@ -192,6 +192,8 @@ def generate_map(tsunami_alert_areas):
             print(f"地域名: {area_name}, マッチ結果: {matched_region}")
             if matched_region:
                 gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
+        gdf = gdf[gdf.is_valid]
+        coastline_gdf = coastline_gdf[coastline_gdf.is_valid]
 
         # 地図の描画
         print("地図を描画中...")
@@ -208,9 +210,12 @@ def generate_map(tsunami_alert_areas):
         ax.set_facecolor("#2a2a2a")
         gdf_total_bounds = gdf.total_bounds
         print("gdf total_bounds:", gdf_total_bounds)  # 範囲を確認
-        ax.set_xlim(gdf_total_bounds[0], gdf_total_bounds[2])  # xmin, xmax
-        ax.set_ylim(gdf_total_bounds[1], gdf_total_bounds[3])  # ymin, ymax
-        ax.set_aspect('auto')
+        x_min, y_min, x_max, y_max = gdf.total_bounds
+        ax.set_xlim([x_min, x_max])
+        ax.set_ylim([y_min, y_max])
+        # 日本の地図描画
+        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black")
+        coastline_gdf.plot(ax=ax, color='black', linewidth=2)
 
         # 海岸線バッファを背景に描画
         coastline_buffer_gdf.plot(ax=ax, color="blue", alpha=0.5, edgecolor="none", linewidth=0, label="Coastline Buffer")
