@@ -192,7 +192,7 @@ def generate_map(tsunami_alert_areas):
 
         # 津波警報エリアに隣接する海岸線を色付け
         print("隣接する海岸線を特定して色を塗っています...")
-        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color="#00bfff")
+        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color=ALERT_COLORS)
 
         # 地図の描画
         print("地図を描画中...")
