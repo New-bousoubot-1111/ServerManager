@@ -158,57 +158,38 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color
     """
     from shapely.geometry import MultiLineString
 
-    # 海岸線データを初期色で設定
-    coastline_gdf["color"] = "#ffffff"
-
-    # 海岸線データから交差部分のみ抽出
-    affected_coastlines = []
-    for region in tsunami_alert_regions:
-        affected_part = coastline_gdf.geometry.intersection(region)
-        affected_coastlines.append(affected_part)
-
-    # 有効な交差部分を新しいジオメトリとして格納
-    affected_coastlines = [part for part in affected_coastlines if not part.is_empty]
-
-    # マルチラインストリングにまとめて新GeoDataFrame作成
-    affected_geom = MultiLineString(affected_coastlines)
-    affected_gdf = gpd.GeoDataFrame(geometry=[affected_geom], crs=coastline_gdf.crs)
-
-    # 色設定: 交差部分だけ塗る
-    affected_gdf["color"] = target_color
-
-    return affected_gdf
-
-def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color="#00bfff"):
-    """
-    津波警報エリアに隣接する海岸線部分のみを色付けする
-    """
-    from shapely.geometry import MultiLineString
-
     # CRSの確認と変換
-    if coastline_gdf.crs != gdf.crs:
+    if coastline_gdf.crs != tsunami_alert_regions.crs:
         print("CRSが一致しません。海岸線データを変換します。")
-        coastline_gdf = coastline_gdf.to_crs(gdf.crs)
+        coastline_gdf = coastline_gdf.to_crs(tsunami_alert_regions.crs)
 
-    # バッファでジオメトリを修正（必要に応じて）
-    coastline_gdf["geometry"] = coastline_gdf.geometry.buffer(0.001)
+    # 投影座標系に変換 (例: EPSG:3857)
+    projected_crs = "EPSG:3857"
+    coastline_gdf = coastline_gdf.to_crs(projected_crs)
+    tsunami_alert_regions = tsunami_alert_regions.to_crs(projected_crs)
+
+    # バッファ適用
+    coastline_gdf["geometry"] = coastline_gdf.geometry.buffer(100)  # バッファ距離（単位はメートル）
 
     # 有効な交差部分を収集
     affected_coastlines = []
-    for region in tsunami_alert_regions:
+    for region in tsunami_alert_regions.geometry:
         for geom in coastline_gdf.geometry:
             affected_part = geom.intersection(region)
             if not affected_part.is_empty:
                 affected_coastlines.append(affected_part)
 
+    # 元のCRSに戻す
+    coastline_gdf = coastline_gdf.to_crs("EPSG:4326")
+
     # 有効な結果があればマルチラインを作成
     if affected_coastlines:
         affected_geom = MultiLineString(affected_coastlines)
-        affected_gdf = gpd.GeoDataFrame(geometry=[affected_geom], crs=coastline_gdf.crs)
+        affected_gdf = gpd.GeoDataFrame(geometry=[affected_geom], crs="EPSG:4326")
         affected_gdf["color"] = target_color
     else:
         print("交差する海岸線が見つかりませんでした。")
-        affected_gdf = gpd.GeoDataFrame(geometry=[], crs=coastline_gdf.crs)
+        affected_gdf = gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
 
     return affected_gdf
 
