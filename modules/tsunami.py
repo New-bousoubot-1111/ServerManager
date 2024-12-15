@@ -225,66 +225,67 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         print("エラーが発生しました:", e)
         raise
 
-def generate_map(tsunami_alert_areas):
-    """津波警報地図を生成し、ローカルパスを返す"""
-    print("地図生成中...")
-    geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
-    gdf["color"] = "#767676"  # 全地域を灰色に設定
-
+def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Regular.ttf"):
+    """
+    画像の左上に枠線・テキスト・凡例の色付き線を追加する
+    :param image_path: 入力画像のパス
+    :param output_path: 出力画像のパス
+    :param text: 描画するテキスト
+    :param font_path: 日本語フォントのパス
+    """
     try:
-        # 津波警報エリアをリストで管理
-        tsunami_alert_regions = []
+        # 画像を開く
+        image = Image.open(image_path)
+        draw = ImageDraw.Draw(image)
 
-        # 津波警報エリアの色設定
-        print("津波警報エリアの色設定を実施中...")
-        for area_name, alert_type in tsunami_alert_areas.items():
-            matched_region = match_region(area_name, geojson_names)
-            if matched_region:
-                idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
-                gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
-                tsunami_alert_regions.append((gdf.at[idx, "geometry"], alert_type))
-        # 海岸線データの読み込み
-        print("海岸線データを読み込み中...")
-        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
-        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
+        # テキスト枠の設定
+        box_x, box_y = 20, 20  # 左上からの座標
+        box_width, box_height = 400, 180  # 枠のサイズ
+        border_color = (255, 0, 0)  # 赤色
+        border_width = 4
 
-        # 海岸線に色を塗る処理
-        print("隣接する海岸線を特定して色を塗っています...")
-        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, ALERT_COLORS)
+        # 枠を描画
+        draw.rectangle(
+            [(box_x, box_y), (box_x + box_width, box_y + box_height)],
+            outline=border_color, width=border_width, fill=(255, 255, 255)
+        )
 
-        # 地図の描画
-        print("地図を描画中...")
-        fig, ax = plt.subplots(figsize=(15, 18))
-        fig.patch.set_facecolor('#2a2a2a')
-        ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+        # テキスト描画の設定
+        font_size = 24
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+        except Exception:
+            print("フォントが見つからないため、デフォルトフォントを使用します。")
+            font = ImageFont.load_default()
 
-         # 地域と海岸線をプロット
-        gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-        coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
+        text_color = (0, 0, 0)  # 黒色
+        text_position = (box_x + 10, box_y + 10)
 
-        # 軸非表示
-        ax.set_axis_off()
+        # テキストの描画
+        draw.text(text_position, text, fill=text_color, font=font)
 
-        # 一時的な画像ファイルパスに保存
-        temp_path = "images/tsunami_temp.png"
-        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-        plt.savefig(temp_path, bbox_inches="tight", transparent=False, dpi=300)
-        plt.close()
+        # 凡例の色付き線を描画
+        legend_x, legend_y = box_x + 10, box_y + 80
+        legend_gap = 40
 
-        # 文字を追加
-        output_path = "images/tsunami.png"
-        text = "最新の津波情報"
-        font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-        add_text_image(temp_path, output_path, text, font_path, font_path=font_path)
+        # 大津波警報（紫色）
+        draw.line([(legend_x, legend_y), (legend_x + 50, legend_y)], fill=(128, 0, 128), width=8)
+        draw.text((legend_x + 60, legend_y - 10), "大津波警報", fill=text_color, font=font)
 
-        print(f"地図が正常に保存されました: {output_path}")
-        return output_path
+        # 津波警報（赤色）
+        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 50, legend_y + legend_gap)], fill=(255, 0, 0), width=8)
+        draw.text((legend_x + 60, legend_y + legend_gap - 10), "津波警報", fill=text_color, font=font)
+
+        # 津波注意報（黄色）
+        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 50, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=8)
+        draw.text((legend_x + 60, legend_y + 2 * legend_gap - 10), "津波注意報", fill=text_color, font=font)
+
+        # 画像を保存
+        image.save(output_path)
+        print(f"テキストと凡例を追加した画像が保存されました: {output_path}")
 
     except Exception as e:
-        print("地図生成エラー:", e)
-        raise
+        print("エラーが発生しました:", e)
 
 class tsunami(commands.Cog):
     def __init__(self, bot):
