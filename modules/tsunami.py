@@ -17,7 +17,7 @@ with open('json/config.json', 'r') as f:
 
 ALERT_COLORS = {"Advisory": "purple", "Warning": "red", "Watch": "yellow"}
 GEOJSON_PATH = "./images/japan.geojson"  # 日本のGeoJSONファイルのパス
-COASTLINE_PATH = "./images/coastline.shp"  # 海岸線のGeoJSONファイルのパス
+COASTLINE_PATH = "./images/coastline.geojson"  # 海岸線のGeoJSONファイルのパス
 GEOJSON_REGION_FIELD = 'nam_ja'
 
 # GeoJSONデータの読み込み
@@ -187,7 +187,7 @@ def generate_map(tsunami_alert_areas):
 
         # 海岸線データの読み込み
         print("海岸線データを読み込み中...")
-        coastline_gdf = gpd.read_file("images/coastline.shp")  # 海岸線のデータ
+        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
         coastline_gdf["color"] = "#ffffff"  # 初期色: 白
 
         # 海岸線に色を塗る処理
