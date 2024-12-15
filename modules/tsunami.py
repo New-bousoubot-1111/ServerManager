@@ -173,38 +173,28 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
-        # 津波警報エリアをリストで管理
-        tsunami_alert_regions = []
+        # 津波警報エリアのジオメトリを特定
+        tsunami_regions = gdf[gdf[GEOJSON_REGION_FIELD].isin(tsunami_alert_areas.keys())]
+        
+        # 隣接する海岸線を特定
+        adjacent_coastlines = coastline_gdf[coastline_gdf.intersects(tsunami_regions.unary_union)]
 
         # 津波警報エリアの色設定
-        print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
             matched_region = match_region(area_name, geojson_names)
             if matched_region:
-                idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
-                gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
-                tsunami_alert_regions.append(gdf.at[idx, "geometry"])
-
-        # 海岸線データの読み込み
-        print("海岸線データを読み込み中...")
-        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
-        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
-
-        # 海岸線に色を塗る処理
-        print("隣接する海岸線を特定して色を塗っています...")
-        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color="#00bfff")
+                gdf.loc[gdf[GEOJSON_REGION_FIELD] == matched_region, "color"] = ALERT_COLORS.get(alert_type, "white")
 
         # 地図の描画
-        print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
 
-        # 地域と海岸線をプロット
+        # 日本全体のマップ
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-        coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
+
+        # 隣接する海岸線を黄色で描画
+        adjacent_coastlines.plot(ax=ax, color="yellow", linewidth=1.5, label="Adjacent Coastline")
 
         # 軸非表示
         ax.set_axis_off()
