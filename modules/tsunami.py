@@ -181,13 +181,13 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
 
         # テキスト枠の設定
         red_box_x, red_box_y = 20, 20  # 赤枠の左上座標
-        red_box_width, red_box_height = 500, 80  # 赤枠のサイズ
-        white_box_y = red_box_y + red_box_height + 10  # 白枠は赤枠の下に設置
-        white_box_width, white_box_height = red_box_width, 150
+        red_box_width, red_box_height = 600, 100  # 赤枠のサイズ（広げました）
+        white_box_y = red_box_y + red_box_height + 20  # 白枠は赤枠の下に設置
+        white_box_width, white_box_height = red_box_width, 200  # 白枠のサイズ（高さを広げました）
 
         # フォントの設定
-        font_size_title = 36
-        font_size_text = 24
+        font_size_title = 48  # タイトルのフォントサイズを大きく
+        font_size_text = 32  # テキストのフォントサイズを大きく
         try:
             title_font = ImageFont.truetype(font_path, font_size_title)
             text_font = ImageFont.truetype(font_path, font_size_text)
@@ -198,31 +198,31 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         # ----- 赤色枠（タイトルエリア） -----
         draw.rectangle(
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
-            outline=(255, 0, 0), width=5, fill=(255, 255, 255)  # 白色背景
+            outline=(255, 0, 0), width=6, fill=(255, 255, 255)  # 赤枠、背景は白
         )
-        draw.text((red_box_x + 20, red_box_y + 20), "最新の津波情報", fill=(0, 0, 0), font=title_font)  # テキストは黒
+        draw.text((red_box_x + 30, red_box_y + 30), "最新の津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
 
         # ----- 白色枠（凡例エリア） -----
         draw.rectangle(
             [(red_box_x, white_box_y), (red_box_x + white_box_width, white_box_y + white_box_height)],
-            outline=(255, 255, 255), width=3, fill=(50, 50, 50)  # 薄い黒背景
+            outline=(255, 255, 255), width=4, fill=(50, 50, 50)  # 薄い黒背景
         )
 
         # 凡例の色付き線とテキスト
-        legend_x, legend_y = red_box_x + 20, white_box_y + 20
-        legend_gap = 40
+        legend_x, legend_y = red_box_x + 30, white_box_y + 30
+        legend_gap = 60  # 各項目間のスペースを広げました
 
         # 大津波警報（紫色）
-        draw.line([(legend_x, legend_y), (legend_x + 50, legend_y)], fill=(128, 0, 128), width=8)
-        draw.text((legend_x + 60, legend_y - 10), "大津波警報", fill=(255, 255, 255), font=text_font)  # テキストは白
+        draw.line([(legend_x, legend_y), (legend_x + 60, legend_y)], fill=(128, 0, 128), width=10)
+        draw.text((legend_x + 70, legend_y - 10), "大津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 津波警報（赤色）
-        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 50, legend_y + legend_gap)], fill=(255, 0, 0), width=8)
-        draw.text((legend_x + 60, legend_y + legend_gap - 10), "津波警報", fill=(255, 255, 255), font=text_font)  # テキストは白
+        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 60, legend_y + legend_gap)], fill=(255, 0, 0), width=10)
+        draw.text((legend_x + 70, legend_y + legend_gap - 10), "津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 津波注意報（黄色）
-        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 50, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=8)
-        draw.text((legend_x + 60, legend_y + 2 * legend_gap - 10), "津波注意報", fill=(255, 255, 255), font=text_font)  # テキストは白
+        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 60, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=10)
+        draw.text((legend_x + 70, legend_y + 2 * legend_gap - 10), "津波注意報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 画像を保存
         image.save(output_path)
