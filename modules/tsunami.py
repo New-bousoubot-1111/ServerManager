@@ -138,6 +138,15 @@ def generate_map(tsunami_alert_areas):
     gdf["color"] = "#767676"  # 全地域を灰色に設定
 
     try:
+        # 海岸線データと地域データの修復
+        gdf = fix_invalid_geometries(gdf)
+        coastline_gdf = fix_invalid_geometries(coastline_gdf)
+
+        # 簡略化と空データの削除
+        coastline_gdf = simplify_geometries(coastline_gdf)
+        gdf = gdf[gdf.geometry.notnull() & ~gdf.geometry.is_empty]
+        coastline_gdf = coastline_gdf[coastline_gdf.geometry.notnull() & ~coastline_gdf.geometry.is_empty]
+
         # 海岸線との交差判定
         print("海岸線との交差判定を実施中...")
         for idx, region in gdf.iterrows():
