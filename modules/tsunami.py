@@ -211,18 +211,19 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         # 凡例の色付き線とテキスト
         legend_x, legend_y = red_box_x + 60, white_box_y + 60
         legend_gap = 100  # 各項目間のスペース
+        text_offset = 160  # テキストを右に少し離すためのオフセット
 
         # 大津波警報（紫色）
         draw.line([(legend_x, legend_y), (legend_x + 120, legend_y)], fill=(128, 0, 128), width=15)  # 線を少し長く
-        draw.text((legend_x + 130, legend_y - 10), "大津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.text((legend_x + text_offset, legend_y - 10), "大津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 津波警報（赤色）
         draw.line([(legend_x, legend_y + legend_gap), (legend_x + 120, legend_y + legend_gap)], fill=(255, 0, 0), width=15)  # 線を少し長く
-        draw.text((legend_x + 130, legend_y + legend_gap - 10), "津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.text((legend_x + text_offset, legend_y + legend_gap - 10), "津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 津波注意報（黄色）
         draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 120, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=15)  # 線を少し長く
-        draw.text((legend_x + 130, legend_y + 2 * legend_gap - 10), "津波注意報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.text((legend_x + text_offset, legend_y + 2 * legend_gap - 10), "津波注意報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 画像を保存
         image.save(output_path)
