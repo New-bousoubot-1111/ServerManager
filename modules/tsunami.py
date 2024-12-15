@@ -159,12 +159,18 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
     :param coastline_gdf: 海岸線データのGeoDataFrame
     :param alert_colors: 警報レベルに対応する色の辞書
     """
-    for idx, coast in coastline_gdf.iterrows():
-        for region, alert_type in tsunami_alert_regions:
-            # 海岸線が津波警報地域に接しているか交差している場合
-            if coast.geometry.intersects(region) or coast.geometry.touches(region):
-                coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
-                break
+    # 初期設定: 全て白色
+    coastline_gdf["color"] = "#ffffff"
+
+    for region_geom, alert_level in tsunami_alert_regions:
+        # region_geom: 津波警報が発表されている地域のジオメトリ
+        # alert_level: 警報レベル（Advisory, Warning, Watch）
+
+        for idx, coast_geom in coastline_gdf.iterrows():
+            # 各海岸線ジオメトリと地域ジオメトリが交差するか確認
+            if coast_geom.geometry.intersects(region_geom) or coast_geom.geometry.touches(region_geom):
+                # 該当する海岸線の色を更新
+                coastline_gdf.at[idx, "color"] = alert_colors.get(alert_level, "#ffffff")
 
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
@@ -184,11 +190,6 @@ def generate_map(tsunami_alert_areas):
                 idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
                 gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
                 tsunami_alert_regions.append((gdf.at[idx, "geometry"], alert_type))
-
-        # 海岸線データの読み込み
-        print("海岸線データを読み込み中...")
-        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
-        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
 
         # 海岸線に色を塗る処理
         print("隣接する海岸線を特定して色を塗っています...")
