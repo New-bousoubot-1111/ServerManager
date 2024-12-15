@@ -183,7 +183,7 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         red_box_x, red_box_y = 20, 20  # 赤枠の左上座標
         red_box_width, red_box_height = 1400, 300  # 赤枠のサイズを大きく
         white_box_y = red_box_y + red_box_height + 60  # 白枠は赤枠の下に設置
-        white_box_width, white_box_height = red_box_width // 1.5, 500  # 白枠の横幅を半分に、縦幅はそのまま
+        white_box_width, white_box_height = red_box_width // 1.7, 500  # 白枠の横幅を半分に、縦幅はそのまま
 
         # フォントの設定
         font_size_title = 120  # タイトルのフォントサイズを大きく
@@ -200,7 +200,7 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
             outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
         )
-        draw.text((red_box_x + 80, red_box_y + 80), "最新の津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
+        draw.text((red_box_x + 80, red_box_y + 80), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
 
         # ----- 白色枠（凡例エリア） -----
         draw.rectangle(
@@ -215,15 +215,15 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
 
         # 大津波警報（紫色）
         draw.line([(legend_x, legend_y), (legend_x + 150, legend_y)], fill=(128, 0, 128), width=20)  # 線を長く、太く
-        draw.text((legend_x + text_offset, legend_y - 15), "大津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.text((legend_x + text_offset, legend_y - 20), "大津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 津波警報（赤色）
         draw.line([(legend_x, legend_y + legend_gap), (legend_x + 150, legend_y + legend_gap)], fill=(255, 0, 0), width=20)  # 線を長く、太く
-        draw.text((legend_x + text_offset, legend_y + legend_gap - 15), "津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.text((legend_x + text_offset, legend_y + legend_gap - 20), "津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 津波注意報（黄色）
         draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 150, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=20)  # 線を長く、太く
-        draw.text((legend_x + text_offset, legend_y + 2 * legend_gap - 15), "津波注意報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.text((legend_x + text_offset, legend_y + 2 * legend_gap - 20), "津波注意報", fill=(255, 255, 255), font=text_font)  # 白文字
 
         # 画像を保存
         image.save(output_path)
