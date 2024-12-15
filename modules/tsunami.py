@@ -142,9 +142,6 @@ def generate_map(tsunami_alert_areas):
         gdf = fix_invalid_geometries(gdf)
         coastline_gdf = fix_invalid_geometries(coastline_gdf)
 
-        # 簡略化と空データの削除
-        coastline_gdf = simplify_geometries(coastline_gdf)
-
         # 海岸線との交差判定
         print("海岸線との交差判定を実施中...")
         for idx, region in gdf.iterrows():
