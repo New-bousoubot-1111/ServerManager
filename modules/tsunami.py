@@ -10,6 +10,7 @@ from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
 import os
+from shapely.geometry import MultiLineString
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -39,8 +40,8 @@ try:
         coastline_gdf.set_crs(epsg=4326, inplace=True)
     print("元のCRS:", coastline_gdf.crs)
 
-    # 投影座標系に変換してバッファ生成
-    coastline_gdf = coastline_gdf.to_crs(epsg=3857)
+    # バッファ作成前にCRSの変換を適切に処理
+    coastline_gdf = coastline_gdf.to_crs(epsg=3857)  # 投影座標系（Web Mercator）
     buffer_distance = 5000  # 5000メートル（5km）のバッファ
     coastline_buffer = coastline_gdf.geometry.buffer(buffer_distance)
     print("バッファ生成成功:", coastline_buffer.head())
@@ -59,13 +60,13 @@ REGION_MAPPING = {
     "伊豆諸島": "東京都"
 }
 
-# 海岸線データを修復する関数
+# GeoDataFrameのジオメトリを修復する関数
 def fix_geometry(gdf):
     """GeoDataFrameのジオメトリを修復"""
     gdf["geometry"] = gdf["geometry"].buffer(0)
     return gdf
 
-# 海岸線データを修復
+# 海岸線データの修復
 print("海岸線データの修復中...")
 coastline_gdf = fix_geometry(coastline_gdf)
 
@@ -95,6 +96,102 @@ def match_region(area_name, geojson_names):
 def is_near_coastline(region):
     """地域が海岸線のバッファ領域と交差するかを判定する"""
     return coastline_buffer.intersects(region).any()
+
+def create_embed(data):
+    alert_levels = {
+        "Advisory": {"title": "大津波警報", "color": 0x800080},  # 紫
+        "Warning": {"title": "津波警報", "color": 0xff0000},    # 赤
+        "Watch": {"title": "津波注意報", "color": 0xffff00}       # 黄
+    }
+    embed_title = "津波情報"
+    embed_color = 0x00FF00
+
+    levels_in_data = [area.get("grade") for area in data.get("areas", [])]
+    for level in ["Advisory", "Warning", "Watch"]:
+        if level in levels_in_data:
+            embed_title = alert_levels[level]["title"]
+            embed_color = alert_levels[level]["color"]
+            break
+
+    embed = Embed(title=embed_title, color=embed_color)
+    tsunami_time = parser.parse(data.get("time", "不明"))
+    formatted_time = tsunami_time.strftime('%Y年%m月%d日 %H時%M分')
+
+    if data.get("areas"):
+        embed.description = f"{embed_title}が発表されました\n安全な場所に避難してください"
+        embed.add_field(name="発表時刻", value=formatted_time, inline=False)
+
+    for area in data.get("areas", []):
+        area_name = area["name"]
+        first_height = area.get("firstHeight", {})
+        maxHeight = area.get("maxHeight", {})
+        condition = first_height.get("condition", "")
+        description = maxHeight.get("description", "不明")
+        arrival_time = first_height.get("arrivalTime", "不明")
+
+        if arrival_time != "不明":
+            try:
+                arrival_time = parser.parse(arrival_time).strftime('%H時%M分')
+                embed.add_field(
+                    name=area_name,
+                    value=f"到達予想時刻: {arrival_time}\n予想高さ: {description}\n{condition}",
+                    inline=False
+                )
+            except ValueError:
+                pass
+        elif arrival_time == "不明":
+            embed.add_field(
+                name=area_name,
+                value=f"予想高さ: {description}\n{condition}",
+                inline=False
+            )
+    tsunami_time2 = parser.parse(data.get("time", "不明"))
+    formatted_time2 = tsunami_time2.strftime('%H時%M分')
+    if not data.get("areas"):
+        embed.add_field(
+            name=f"{formatted_time2}頃に津波警報、注意報等が解除されました。",
+            value="念のため、今後の情報に気をつけてください。",
+            inline=False
+        )
+    return embed
+
+def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, target_color="#00bfff"):
+    """
+    津波警報エリアに隣接する海岸線部分のみを色付けする
+    """
+    # 海岸線データを初期色で設定
+    coastline_gdf["color"] = "#ffffff"
+
+    # 海岸線データから交差部分のみ抽出
+    affected_coastlines = []
+    for region in tsunami_alert_regions:
+        print("処理中の地域ジオメトリ:", region)  # デバッグ出力
+        for geom in coastline_gdf.geometry:
+            print("交差チェック対象の海岸線ジオメトリ:", geom)  # デバッグ出力
+            affected_part = geom.intersection(region)
+            if not affected_part.is_empty:
+                print("交差部分が見つかりました:", affected_part)  # デバッグ出力
+                affected_coastlines.append(affected_part)
+
+    # 有効な交差部分を新しいジオメトリとして格納
+    if affected_coastlines:
+        affected_geom = MultiLineString(affected_coastlines) if len(affected_coastlines) > 1 else affected_coastlines[0]
+        affected_gdf = gpd.GeoDataFrame(geometry=[affected_geom], crs=coastline_gdf.crs)
+        affected_gdf["color"] = target_color
+        print("交差部分に色を付けたGeoDataFrame:", affected_gdf)  # デバッグ出力
+        return affected_gdf
+    else:
+        return None
+
+# メインの処理部分
+alert_data = {
+    "areas": [{"name": "北海道", "grade": "Warning", "maxHeight": {"description": "1.5m"}}, {"name": "青森県", "grade": "Watch", "maxHeight": {"description": "0.5m"}}],
+    "time": "2024-12-15T14:35:00Z"
+}
+
+# GeoDataFrameに基づいて津波警報を発令した地域を特定し、海岸線を色付け
+regions_to_alert = [gdf[gdf[GEOJSON_REGION_FIELD] == area["name"]].geometry.iloc[0] for area in alert_data["areas"]]
+colored_coastlines = color_adjacent_coastlines(regions_to_alert, coastline_gdf)
 
 def create_embed(data):
     alert_levels = {
