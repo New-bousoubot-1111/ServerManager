@@ -167,7 +167,7 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
-def add_text_box_to_image(image_path, output_path, text, font_path="fonts/NotoSansJP-Regular.otf"):
+def add_text_image(image_path, output_path, text, font_path="fonts/NotoSansJP-Regular.otf"):
     """
     画像の左上に枠線・テキスト・凡例の色付き線を追加する
     :param image_path: 入力画像のパス
@@ -277,7 +277,7 @@ def generate_map(tsunami_alert_areas):
         output_path = "images/tsunami.png"
         text = "最新の津波情報"
         font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-        add_text_to_image(temp_path, output_path, text, font_path, font_path=font_path)
+        add_text_image(temp_path, output_path, text, font_path, font_path=font_path)
 
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
