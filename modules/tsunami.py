@@ -10,6 +10,7 @@ from nextcord import File, Embed
 from datetime import datetime
 from dateutil import parser
 import os
+from PIL import Image, ImageDraw, ImageFont
 
 # 設定ファイルの読み込み
 with open('json/config.json', 'r') as f:
@@ -166,6 +167,35 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
+def add_text_to_image(image_path, output_path, text, font_path="fonts/NotoSansJP-Regular.otf"):
+    """
+    画像に文字を描画する
+    :param image_path: 元の画像パス
+    :param output_path: 出力画像パス
+    :param text: 描画する文字列
+    :param font_path: フォントファイルのパス
+    """
+    try:
+        # 画像を開く
+        image = Image.open(image_path)
+        draw = ImageDraw.Draw(image)
+
+        # フォントの読み込み
+        font_size = 40
+        font = ImageFont.truetype(font_path, font_size)
+
+        # テキストを描画
+        text_position = (50, 50)  # 左上の座標
+        text_color = (255, 255, 255)  # 白色
+        draw.text(text_position, text, fill=text_color, font=font)
+
+        # 出力画像を保存
+        image.save(output_path)
+        print(f"文字を追加した画像が保存されました: {output_path}")
+    except Exception as e:
+        print("画像への文字追加エラー:", e)
+        raise
+
 def generate_map(tsunami_alert_areas):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
@@ -185,15 +215,6 @@ def generate_map(tsunami_alert_areas):
                 gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
                 tsunami_alert_regions.append((gdf.at[idx, "geometry"], alert_type))
 
-        # 海岸線データの読み込み
-        print("海岸線データを読み込み中...")
-        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
-        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
-
-        # 海岸線に色を塗る処理
-        print("隣接する海岸線を特定して色を塗っています...")
-        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, ALERT_COLORS)
-
         # 地図の描画
         print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
@@ -202,18 +223,24 @@ def generate_map(tsunami_alert_areas):
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
 
-        # 地域と海岸線をプロット
+        # 地域をプロット
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
-        coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
 
         # 軸非表示
         ax.set_axis_off()
 
-        # 出力パスに保存
-        output_path = "images/tsunami.png"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, bbox_inches="tight", transparent=False, dpi=300)
+        # 一時的な画像ファイルパスに保存
+        temp_path = "images/tsunami_temp.png"
+        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+        plt.savefig(temp_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
+
+        # 文字を追加
+        output_path = "images/tsunami.png"
+        additional_text = "最新の津波情報"
+        font_path = "fonts/NotoSansJP-Regular.otf"  # フォントのパス
+        add_text_to_image(temp_path, output_path, additional_text, font_path=font_path)
+
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
 
