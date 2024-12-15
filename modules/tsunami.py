@@ -209,7 +209,7 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         )
 
         # 凡例の色付き線とテキスト
-        legend_x, legend_y = red_box_x + 80, white_box_y + 110
+        legend_x, legend_y = red_box_x + 80, white_box_y + 105
         legend_gap = 130  # 各項目間のスペース
         text_offset = 200  # テキストを右に少し離すためのオフセット
 
