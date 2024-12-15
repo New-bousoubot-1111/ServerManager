@@ -223,8 +223,9 @@ def generate_map(tsunami_alert_areas):
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
 
-        # 地域をプロット
+         # 地域と海岸線をプロット
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
+        coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
 
         # 軸非表示
         ax.set_axis_off()
