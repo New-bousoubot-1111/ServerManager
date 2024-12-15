@@ -167,33 +167,64 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
-def add_text_to_image(image_path, output_path, text, font_path="fonts/NotoSansJP-Regular.otf"):
+from PIL import Image, ImageDraw, ImageFont
+
+def add_text_box_to_image(image_path, output_path, text, font_path="fonts/NotoSansJP-Regular.otf"):
     """
-    画像に文字を描画する
-    :param image_path: 元の画像パス
-    :param output_path: 出力画像パス
-    :param text: 描画する文字列
-    :param font_path: フォントファイルのパス
+    画像の左上に枠線・テキスト・凡例の色付き線を追加する
+    :param image_path: 入力画像のパス
+    :param output_path: 出力画像のパス
+    :param text: 描画するテキスト
+    :param font_path: 日本語フォントのパス
     """
     try:
         # 画像を開く
         image = Image.open(image_path)
         draw = ImageDraw.Draw(image)
 
-        # フォントの読み込み
-        font_size = 40
-        font = ImageFont.truetype(font_path, font_size)
+        # テキスト枠の設定
+        box_x, box_y = 20, 20  # 左上からの座標
+        box_width, box_height = 400, 180  # 枠のサイズ
+        border_color = (255, 0, 0)  # 赤色
+        border_width = 4
 
-        # テキストを描画
-        text_position = (50, 50)  # 左上の座標
-        text_color = (255, 255, 255)  # 白色
+        # 枠を描画
+        draw.rectangle(
+            [(box_x, box_y), (box_x + box_width, box_y + box_height)],
+            outline=border_color, width=border_width, fill=(255, 255, 255)
+        )
+
+        # テキスト描画の設定
+        font_size = 24
+        font = ImageFont.truetype(font_path, font_size)
+        text_color = (0, 0, 0)  # 黒色
+        text_position = (box_x + 10, box_y + 10)
+
+        # テキストの描画
         draw.text(text_position, text, fill=text_color, font=font)
 
-        # 出力画像を保存
+        # 凡例の色付き線を描画
+        legend_x, legend_y = box_x + 10, box_y + 80
+        legend_gap = 40
+
+        # 大津波警報（紫色）
+        draw.line([(legend_x, legend_y), (legend_x + 50, legend_y)], fill=(128, 0, 128), width=8)
+        draw.text((legend_x + 60, legend_y - 10), "大津波警報", fill=text_color, font=font)
+
+        # 津波警報（赤色）
+        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 50, legend_y + legend_gap)], fill=(255, 0, 0), width=8)
+        draw.text((legend_x + 60, legend_y + legend_gap - 10), "津波警報", fill=text_color, font=font)
+
+        # 津波注意報（黄色）
+        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 50, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=8)
+        draw.text((legend_x + 60, legend_y + 2 * legend_gap - 10), "津波注意報", fill=text_color, font=font)
+
+        # 画像を保存
         image.save(output_path)
-        print(f"文字を追加した画像が保存されました: {output_path}")
+        print(f"テキストと凡例を追加した画像が保存されました: {output_path}")
+
     except Exception as e:
-        print("画像への文字追加エラー:", e)
+        print("エラーが発生しました:", e)
         raise
 
 def generate_map(tsunami_alert_areas):
