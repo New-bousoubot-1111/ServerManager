@@ -167,7 +167,7 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
-def add_text_image(image_path, output_path, text, font_path="fonts/NotoSansJP-Regular.otf"):
+def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Regular.ttf"):
     """
     画像の左上に枠線・テキスト・凡例の色付き線を追加する
     :param image_path: 入力画像のパス
