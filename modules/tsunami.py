@@ -167,7 +167,7 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
-def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Regular.ttf"):
+def add_text_image(image_path, output_path, text, data, font_path="json/NotoSansJP-Regular.ttf"):
     """
     画像の左上に赤枠（タイトル）と白枠（凡例）を追加し、テキストを描画する
     :param image_path: 入力画像のパス
@@ -200,8 +200,11 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
             outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
         )
-        draw.text((red_box_x + 80, red_box_y + 80), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
-
+        tsunami_time3 = parser.parse(data.get("time", "不明"))
+        formatted_time3 = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
+        draw.text((red_box_x + 80, red_box_y + 40), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
+        draw.text((red_box_x + 80, red_box_y + 120), formatted_time3, fill=(0, 0, 0), font=title_font)  # 黒文字
+        
         # ----- 白色枠（凡例エリア） -----
         draw.rectangle(
             [(red_box_x, white_box_y), (red_box_x + white_box_width, white_box_y + white_box_height)],
