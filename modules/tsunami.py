@@ -167,7 +167,7 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
-def add_text_image(image_path, output_path, text, data, font_path="json/NotoSansJP-Regular.ttf"):
+def add_text_image(image_path, output_path, text, text_time, font_path="json/NotoSansJP-Regular.ttf"):
     """
     画像の左上に赤枠（タイトル）と白枠（凡例）を追加し、テキストを描画する
     :param image_path: 入力画像のパス
@@ -201,10 +201,7 @@ def add_text_image(image_path, output_path, text, data, font_path="json/NotoSans
             outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
         )
         draw.text((red_box_x + 80, red_box_y + 70), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
-        for area in data.get("areas", []):
-            tsunami_time3 = parser.parse(data.get("time", "不明"))
-            formatted_time3 = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
-            draw.text((red_box_x + 80, red_box_y + 85), formatted_time3, fill=(0, 0, 0), font=title_font)  # 黒文字
+        draw.text((red_box_x + 80, red_box_y + 85), text_time, fill=(0, 0, 0), font=title_font)  # 黒文字
         
         # ----- 白色枠（凡例エリア） -----
         draw.rectangle(
@@ -283,12 +280,15 @@ def generate_map(tsunami_alert_areas):
         os.makedirs(os.path.dirname(temp_path), exist_ok=True)
         plt.savefig(temp_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
-
-        # 文字を追加
-        output_path = "images/tsunami.png"
-        text = "最新の津波情報"
-        font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-        add_text_image(temp_path, output_path, text, tsunami_alert_areas, font_path)
+        for area in data.get("areas", []):
+            tsunami_time3 = parser.parse(data.get("time", "不明"))
+            text_time = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
+            # 文字を追加
+            output_path = "images/tsunami.png"
+            text = "最新の津波情報"
+            text_time = text_time
+            font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
+            add_text_image(temp_path, output_path, text, text_time, font_path)
 
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
