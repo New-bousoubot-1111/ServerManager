@@ -288,7 +288,7 @@ def generate_map(tsunami_alert_areas):
             text = "最新の津波情報"
             text_time = text_time
             font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-            add_text_image(temp_path, output_path, text, data, text_time, font_path)
+            add_text_image(temp_path, output_path, text, text_time, font_path)
 
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
