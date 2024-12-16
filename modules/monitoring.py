@@ -23,11 +23,10 @@ def detect_toxicity_huggingface(text):
         response.raise_for_status()  # HTTPエラーがあれば例外をスロー
 
         result = response.json()
-
-        if response.status_code == 200:
+        if response.status_code == 200 and isinstance(result, list):
             for label_info in result[0]:
-                label = label_info["label"]
-                score = label_info["score"]
+                label = label_info.get("label", "")
+                score = label_info.get("score", 0)
                 print(f"Label: {label}, Score: {score}")  # デバッグ用出力
                 if label in ["toxic", "insult", "threat"] and score > 0.3:
                     return label, score
@@ -64,23 +63,24 @@ class monitoring(commands.Cog):
 
         # まずVADERで感情分析を行い、暴言を検出
         label, score = detect_sentiment_vader(message.content)
-        
+
         # VADERで暴言が検出された場合
         if label == "toxic" and score < -0.3:
             try:
+                await message.delete()  # メッセージを削除
                 await message.author.timeout(timedelta(minutes=30), reason="VADER検出: 暴言または脅迫が検出されました。")
                 await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
-                await message.delete()
-                return
+                return  # VADERで検出された場合は処理を終了
 
         # もしVADERで検出されなかった場合、Hugging Faceで再度検出
         label, score = detect_toxicity_huggingface(message.content)
 
-        if label == "toxic" and score > 0.3:  # スコアが高ければ
+        # Hugging Faceで暴言が検出された場合
+        if label == "toxic" and score > 0.3:
             try:
+                await message.delete()  # メッセージを削除
                 await message.author.timeout(timedelta(minutes=30), reason="Hugging Face検出: 暴言または脅迫が検出されました。")
                 await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
-                await message.delete()
             except Exception as e:
                 print(f"タイムアウト適用エラー: {e}")
 
