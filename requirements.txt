@@ -14,3 +14,4 @@ geopandas
 fuzzywuzzy
 shapely
 transformers
+vaderSentiment
