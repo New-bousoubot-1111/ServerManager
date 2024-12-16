@@ -18,9 +18,9 @@ def detect_toxicity(text):
     if response.status_code == 200:
         result = response.json()
         print(f"API Response: {result}")  # ここでAPIのレスポンスを表示
-        if isinstance(result, list):
-            label = result[0].get("label", "")
-            score = result[0].get("score", 0)
+        if isinstance(result, list) and isinstance(result[0], list):
+            # 複数のラベルがある場合、スコアが最大のものを選択
+            label, score = max(result[0], key=lambda x: x['score'])
         else:
             print("Unexpected response format")
             label, score = None, None
@@ -50,7 +50,7 @@ class monitoring(commands.Cog):
         print(f"Label: {label}, Score: {score}")  # ラベルとスコアを表示
 
         # 結果に基づいてタイムアウトや警告を行う
-        if label == "TOXIC" and score > 0.8:  # スコアが0.8以上で暴言と見なす
+        if label == "toxic" and score > 0.8:  # スコアが0.8以上で暴言と見なす
             try:
                 # Botがタイムアウト権限を持っているか確認
                 if not message.guild.me.guild_permissions.moderate_members:
