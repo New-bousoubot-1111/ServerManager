@@ -4,7 +4,7 @@ from transformers import pipeline
 
 # 感情分析パイプラインの初期化
 # ここでは `cl-tohoku/bert-base-japanese` モデルを使用
-classifier = pipeline("text-classification", model="cl-tohoku/bert-base-japanese-sentiment")
+classifier = pipeline("text-classification", model="Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime")
 
 # 不適切な内容を判定する関数
 def check_inappropriate_content(text):
