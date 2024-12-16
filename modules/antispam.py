@@ -11,6 +11,7 @@ from colorama import Fore
 SPAM_TIMEOUT = 15  # スパムメッセージの有効時間（秒）
 DETECTION_LEVELS = [1, 2, 3, 4]  # 処罰段階を表すリスト
 EXCLUDED_USERS = [800255014463078462]  # スパム検出対象外のユーザー
+target_channel = "1192117995561033768"
 
 messages: Dict[int, List[nextcord.Message]] = {}  # ユーザーごとのメッセージ追跡
 violations: Dict[int, int] = {}  # ユーザーごとのスパム違反回数
@@ -27,11 +28,61 @@ async def delete_messages(channel: nextcord.TextChannel, msgs: List[nextcord.Mes
         await channel.delete_messages(chunk)
 
 
+class BanAppealModal(nextcord.ui.Modal):
+    """バンされたユーザーが内容を送信するモーダル"""
+    def __init__(self, bot: commands.Bot, target_channel_id: int, user: nextcord.User):
+        self.bot = bot
+        self.target_channel_id = target_channel_id
+        self.user = user
+        super().__init__(
+            title="バン解除リクエスト",
+            timeout=300,  # 5分
+        )
+
+        self.add_item(
+            nextcord.ui.TextInput(
+                label="リクエスト内容",
+                placeholder="バンの理由や解除理由を入力してください",
+                style=nextcord.TextInputStyle.paragraph,
+                max_length=1000,
+            )
+        )
+
+    async def callback(self, interaction: nextcord.Interaction):
+        content = self.children[0].value  # ユーザーが入力した内容
+        if target_channel is None:
+            await interaction.response.send_message("送信先のチャンネルが見つかりませんでした。", ephemeral=True)
+            return
+
+        embed = nextcord.Embed(
+            title="バン解除リクエスト",
+            description=f"ユーザー: {self.user.mention} ({self.user.id})\n\n**内容:**\n{content}",
+            color=0x00FF00,
+        )
+        await target_channel.send(embed=embed)
+        await interaction.response.send_message("リクエストを送信しました。", ephemeral=True)
+
+
+class BanAppealView(nextcord.ui.View):
+    """モーダルを表示するためのボタン"""
+    def __init__(self, bot: commands.Bot, target_channel_id: int, user: nextcord.User):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.target_channel_id = target_channel_id
+        self.user = user
+
+    @nextcord.ui.button(label="リクエストを送信", style=nextcord.ButtonStyle.green)
+    async def send_request(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        modal = BanAppealModal(self.bot, self.target_channel_id, self.user)
+        await interaction.response.send_modal(modal)
+
+
 async def handle_violation(bot: commands.Bot, message: nextcord.Message):
     """スパム検出時の処理"""
     user_id = message.author.id
     member = message.author
     channel = message.channel
+    appeal_channel_id = 123456789012345678  # バン解除リクエストを送信するチャンネルのIDを指定
 
     # ユーザーの違反回数を記録
     if user_id not in violations:
@@ -41,43 +92,35 @@ async def handle_violation(bot: commands.Bot, message: nextcord.Message):
 
     try:
         if level == 1:
-            # 1回目の処罰：1時間のタイムアウト
             await member.timeout(timedelta(hours=1), reason="スパム行為 - 1回目")
-            embed = nextcord.Embed(
-                description=f"{member.mention}はスパム行為のため、1時間タイムアウトされました。",
-                color=0xFFFF00,
-            )
-            await channel.send(embed=embed)
+            await channel.send(f"{member.mention}がスパム行為のため、1時間タイムアウトされました。")
 
         elif level == 2:
-            # 2回目の処罰：1日のタイムアウト
             await member.timeout(timedelta(days=1), reason="スパム行為 - 2回目")
-            embed = nextcord.Embed(
-                description=f"{member.mention}はスパム行為のため、1日タイムアウトされました。",
-                color=0xFFA500,
-            )
-            await channel.send(embed=embed)
+            await channel.send(f"{member.mention}がスパム行為のため、1日タイムアウトされました。")
 
         elif level == 3:
-            # 3回目の処罰：サーバーからのキック
             await member.kick(reason="スパム行為 - 3回目")
-            embed = nextcord.Embed(
-                description=f"{member.mention}はスパム行為のため、サーバーからキックされました。",
-                color=0xFF4500,
-            )
-            await channel.send(embed=embed)
+            await channel.send(f"{member.mention}がスパム行為のため、サーバーからキックされました。")
 
         elif level >= 4:
-            # 4回目以降の処罰：サーバーからのバン
             await member.ban(reason="スパム行為 - 4回目以上")
-            embed = nextcord.Embed(
-                description=f"{member.mention}はスパム行為のため、サーバーからバンされました。",
-                color=0xFF0000,
-            )
-            await channel.send(embed=embed)
+            await channel.send(f"{member.mention}がスパム行為のため、サーバーからバンされました。")
+
+            # バンされたユーザーにDMを送信
+            try:
+                appeal_view = BanAppealView(bot, appeal_channel_id, member)
+                dm_channel = await member.create_dm()
+                embed = nextcord.Embed(
+                    title="バン解除リクエスト",
+                    description="スパム行為によりバンされました。\n\n以下のボタンをクリックして、解除リクエストを送信してください。",
+                    color=0xFF0000,
+                )
+                await dm_channel.send(embed=embed, view=appeal_view)
+            except Exception as e:
+                print(f"DM送信エラー: {format_exception(e)}", file=sys.stderr)
 
     except Exception as e:
-        # エラー発生時のログ出力
         print(format_exception(e), file=sys.stderr)
 
 
@@ -90,24 +133,21 @@ async def spam_check(bot: commands.Bot, message: nextcord.Message) -> None:
     if user_id not in messages:
         messages[user_id] = []
 
-    # メッセージを追跡リストに追加
     messages[user_id].append(message)
 
-    # メッセージの有効期限を設定
     async def remove_message():
         if user_id in messages:
             messages[user_id] = [msg for msg in messages[user_id] if msg.id != message.id]
 
     bot.loop.call_later(SPAM_TIMEOUT, asyncio.create_task, remove_message())
 
-    # スパムとみなす閾値を超えたか判定
-    if len(messages[user_id]) > 10:  # 例: 5メッセージ以上送信するとスパム
+    if len(messages[user_id]) > 10:
         await handle_violation(bot, message)
         await delete_messages(message.channel, messages[user_id])
-        messages[user_id].clear()  # スパム検出後、メッセージリストをクリア
+        messages[user_id].clear()
 
 
-class antiSpam(commands.Cog):
+class antispam(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -121,4 +161,4 @@ class antiSpam(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(antiSpam(bot))
+    bot.add_cog(antispam(bot))
