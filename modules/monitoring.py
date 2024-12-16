@@ -35,9 +35,10 @@ def detect_toxicity_huggingface(text):
 
     except requests.exceptions.RequestException as e:  # HTTPリクエストエラーをキャッチ
         print(f"Error during API request: {e}")
+        return None, None
     except Exception as e:  # その他の例外をキャッチ
         print(f"Unexpected error: {e}")
-    return None, None
+        return None, None
 
 # VADERを使って感情分析を実施
 def detect_sentiment_vader(text):
@@ -71,6 +72,9 @@ class monitoring(commands.Cog):
                 await message.author.timeout(timedelta(minutes=30), reason="VADER検出: 暴言または脅迫が検出されました。")
                 await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
                 return  # VADERで検出された場合は処理を終了
+
+            except Exception as e:
+                print(f"エラー: {e}")
 
         # もしVADERで検出されなかった場合、Hugging Faceで再度検出
         label, score = detect_toxicity_huggingface(message.content)
