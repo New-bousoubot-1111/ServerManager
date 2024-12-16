@@ -14,5 +14,3 @@ geopandas
 fuzzywuzzy
 shapely
 transformers
-torch
-tensorflow
