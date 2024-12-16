@@ -167,11 +167,13 @@ def color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, alert_colors
                 coastline_gdf.at[idx, "color"] = alert_colors.get(alert_type, "#ffffff")
                 break
 
-def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Regular.ttf"):
+def add_text_image(image_path, output_path, text, time_text=None, font_path="json/NotoSansJP-Regular.ttf"):
     """
     画像の左上に赤枠（タイトル）と白枠（凡例）を追加し、テキストを描画する
     :param image_path: 入力画像のパス
     :param output_path: 出力画像のパス
+    :param text: タイトルテキスト
+    :param time_text: 表示する時間テキスト（例: "2024年12月16日 14時30分"）
     :param font_path: 日本語フォントのパス
     """
     try:
@@ -180,15 +182,15 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         draw = ImageDraw.Draw(image)
 
         # テキスト枠の設定
-        red_box_x, red_box_y = 20, 20  # 赤枠の左上座標
-        red_box_width, red_box_height = 1400, 300  # 赤枠のサイズを大きく
-        white_box_y = red_box_y + red_box_height + 60  # 白枠は赤枠の下に設置
-        white_box_width, white_box_height = red_box_width // 1.7, 500  # 白枠の横幅を半分に、縦幅はそのまま
+        red_box_x, red_box_y = 20, 20
+        red_box_width, red_box_height = 1400, 300
+        white_box_y = red_box_y + red_box_height + 60
+        white_box_width, white_box_height = red_box_width // 1.7, 500
 
         # フォントの設定
-        font_size_title = 100  # タイトルのフォントサイズを大きく
+        font_size_title = 100
         font_size_time_text = 60
-        font_size_text = 80  # テキストのフォントサイズを大きく
+        font_size_text = 80
         try:
             title_font = ImageFont.truetype(font_path, font_size_title)
             time_font = ImageFont.truetype(font_path, font_size_time_text)
@@ -197,39 +199,37 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
             print("フォントが見つからないため、デフォルトフォントを使用します。")
             title_font = text_font = ImageFont.load_default()
 
-        # ----- 赤色枠（タイトルエリア） -----
+        # 赤色枠（タイトルエリア）
         draw.rectangle(
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
-            outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
+            outline=(255, 0, 0), width=15, fill=(255, 255, 255)
         )
-        tsunami_time3 = parser.parse(data.get("time", "不明"))
-        formatted_time3 = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
-        draw.text((red_box_x + 80, red_box_y + 40), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
+        draw.text((red_box_x + 80, red_box_y + 40), text, fill=(0, 0, 0), font=title_font)
         if time_text:
-            draw.text((red_box_x + 80, red_box_y + 80), tsunami_time3, fill=(0, 0, 0), font=time_font)  # タイトルの下に配置
+            draw.text((red_box_x + 80, red_box_y + 180), time_text, fill=(0, 0, 0), font=time_font)
 
-        # ----- 白色枠（凡例エリア） -----
+        # 白色枠（凡例エリア）
         draw.rectangle(
             [(red_box_x, white_box_y), (red_box_x + white_box_width, white_box_y + white_box_height)],
-            outline=(255, 255, 255), width=8, fill=(50, 50, 50)  # 薄い黒背景
+            outline=(255, 255, 255), width=8, fill=(50, 50, 50)
         )
 
-        # 凡例の色付き線とテキスト
+        # 凡例の描画
         legend_x, legend_y = red_box_x + 80, white_box_y + 110
-        legend_gap = 130  # 各項目間のスペース
-        text_offset = 200  # テキストを右に少し離すためのオフセット
+        legend_gap = 130
+        text_offset = 200
 
         # 大津波警報（紫色）
-        draw.line([(legend_x, legend_y), (legend_x + 150, legend_y)], fill=(128, 0, 128), width=20)  # 線を長く、太く
-        draw.text((legend_x + text_offset, legend_y - 60), "大津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.line([(legend_x, legend_y), (legend_x + 150, legend_y)], fill=(128, 0, 128), width=20)
+        draw.text((legend_x + text_offset, legend_y - 60), "大津波警報", fill=(255, 255, 255), font=text_font)
 
         # 津波警報（赤色）
-        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 150, legend_y + legend_gap)], fill=(255, 0, 0), width=20)  # 線を長く、太く
-        draw.text((legend_x + text_offset, legend_y + legend_gap - 60), "津波警報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.line([(legend_x, legend_y + legend_gap), (legend_x + 150, legend_y + legend_gap)], fill=(255, 0, 0), width=20)
+        draw.text((legend_x + text_offset, legend_y + legend_gap - 60), "津波警報", fill=(255, 255, 255), font=text_font)
 
         # 津波注意報（黄色）
-        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 150, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=20)  # 線を長く、太く
-        draw.text((legend_x + text_offset, legend_y + 2 * legend_gap - 60), "津波注意報", fill=(255, 255, 255), font=text_font)  # 白文字
+        draw.line([(legend_x, legend_y + 2 * legend_gap), (legend_x + 150, legend_y + 2 * legend_gap)], fill=(255, 255, 0), width=20)
+        draw.text((legend_x + text_offset, legend_y + 2 * legend_gap - 60), "津波注意報", fill=(255, 255, 255), font=text_font)
 
         # 画像を保存
         image.save(output_path)
@@ -238,7 +238,7 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
     except Exception as e:
         print("エラーが発生しました:", e)
 
-def generate_map(tsunami_alert_areas):
+def generate_map(tsunami_alert_areas, tsunami_time):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
@@ -249,31 +249,28 @@ def generate_map(tsunami_alert_areas):
         tsunami_alert_regions = []
 
         # 津波警報エリアの色設定
-        print("津波警報エリアの色設定を実施中...")
         for area_name, alert_type in tsunami_alert_areas.items():
             matched_region = match_region(area_name, geojson_names)
             if matched_region:
                 idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
                 gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
                 tsunami_alert_regions.append((gdf.at[idx, "geometry"], alert_type))
+
         # 海岸線データの読み込み
-        print("海岸線データを読み込み中...")
         coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
         coastline_gdf["color"] = "#ffffff"  # 初期色: 白
 
         # 海岸線に色を塗る処理
-        print("隣接する海岸線を特定して色を塗っています...")
         color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, ALERT_COLORS)
 
         # 地図の描画
-        print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
         fig.patch.set_facecolor('#2a2a2a')
         ax.set_facecolor("#2a2a2a")
-        ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
-        ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
+        ax.set_xlim([122, 153])  # 東経122度～153度
+        ax.set_ylim([20, 46])    # 北緯20度～46度
 
-         # 地域と海岸線をプロット
+        # 地域と海岸線をプロット
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
         coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
 
@@ -289,8 +286,7 @@ def generate_map(tsunami_alert_areas):
         # 文字を追加
         output_path = "images/tsunami.png"
         text = "最新の津波情報"
-        font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-        add_text_image(temp_path, output_path, text, font_path)
+        add_text_image(temp_path, output_path, text, time_text=tsunami_time.strftime('%Y年%m月%d日 %H時%M分'))
 
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
