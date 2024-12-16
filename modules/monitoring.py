@@ -50,7 +50,7 @@ class monitoring(commands.Cog):
         print(f"Label: {label}, Score: {score}")  # ラベルとスコアを表示
 
         # 結果に基づいてタイムアウトや警告を行う
-        if label == "toxic" and score > 0.8:  # スコアが0.8以上で暴言と見なす
+        if label == "toxic" and score > 0.2:  # スコアが0.8以上で暴言と見なす
             try:
                 # Botがタイムアウト権限を持っているか確認
                 if not message.guild.me.guild_permissions.moderate_members:
