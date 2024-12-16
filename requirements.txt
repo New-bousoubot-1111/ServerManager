@@ -13,6 +13,4 @@ matplotlib
 geopandas
 fuzzywuzzy
 shapely
-transformers
-torch
-sentencepiece
+openai
