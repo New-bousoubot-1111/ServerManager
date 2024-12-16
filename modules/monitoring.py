@@ -1,51 +1,22 @@
 import nextcord
 from nextcord.ext import commands
-import requests
-from datetime import timedelta
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from transformers import pipeline
 
-# Hugging Face APIキー
-API_KEY = "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"
+# 感情分析パイプラインの初期化
+# ここでは `cl-tohoku/bert-base-japanese` モデルを使用
+classifier = pipeline("text-classification", model="cl-tohoku/bert-base-japanese-sentiment")
 
-# Hugging Faceの感情分析用APIエンドポイント
-API_URL = "https://api-inference.huggingface.co/models/unitary/toxic-bert"
+# 不適切な内容を判定する関数
+def check_inappropriate_content(text):
+    # メッセージの感情を分析
+    results = classifier(text)
+    for result in results:
+        # スコアが高く、否定的 (negative) な感情と判断された場合
+        if result['label'] == 'negative' and result['score'] > 0.8:
+            return True
+    return False
 
-# VADERのインスタンス作成
-vader_analyzer = SentimentIntensityAnalyzer()
-
-# Hugging Faceを使って暴言の検出
-def detect_toxicity_huggingface(text):
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    payload = {"inputs": text}
-
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        response.raise_for_status()  # HTTPエラーがあれば例外をスロー
-
-        result = response.json()
-        if response.status_code == 200 and isinstance(result, list):
-            for label_info in result[0]:
-                label = label_info.get("label", "")
-                score = label_info.get("score", 0)
-                print(f"Label: {label}, Score: {score}")  # デバッグ用出力
-                if label in ["toxic", "insult", "threat"] and score > 0.3:
-                    return label, score
-        else:
-            print(f"Error: Unexpected status code {response.status_code}")
-    except requests.exceptions.RequestException as e:  # HTTPリクエストエラーをキャッチ
-        print(f"Error during API request: {e}")
-    except Exception as e:  # その他の例外をキャッチ
-        print(f"Unexpected error: {e}")
-    return None, None  # 何も検出されなかった場合、Noneを返す
-
-# VADERを使って感情分析を実施
-def detect_sentiment_vader(text):
-    sentiment = vader_analyzer.polarity_scores(text)
-    # VADERのポジティブスコアが低く、ネガティブスコアが高い場合に危険と判断
-    if sentiment['compound'] < -0.3:
-        return "toxic", sentiment['compound']
-    return None, None
-
+# Discord Bot の定義
 class monitoring(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -55,42 +26,20 @@ class monitoring(commands.Cog):
         print("| Profanity Filter Loaded |")
 
     @commands.Cog.listener()
-    async def on_message(self, message: nextcord.Message):
-        # ボットのメッセージや管理者のメッセージは無視
-        if message.author.bot or message.author.guild_permissions.administrator:
+    async def on_message(self, message):
+        # Bot自身のメッセージは無視
+        if message.author.bot:
             return
 
-        # まずVADERで感情分析を行い、暴言を検出
-        label, score = detect_sentiment_vader(message.content)
+        # メッセージの不適切な内容をチェック
+        if check_inappropriate_content(message.content):
+            # メッセージを削除
+            await message.delete()
+            # 警告メッセージを送信
+            await message.channel.send(f"{message.author.mention} 不適切な発言が検出されました。メッセージは削除されました。")
 
-        # VADERで暴言が検出された場合
-        if label == "toxic" and score < -0.3:
-            try:
-                await message.delete()  # メッセージを削除
-                await message.author.timeout(timedelta(minutes=30), reason="VADER検出: 暴言または脅迫が検出されました。")
-                await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
-                return  # VADERで検出された場合は処理を終了
-
-            except Exception as e:
-                print(f"エラー: {e}")
-
-        # もしVADERで検出されなかった場合、Hugging Faceで再度検出
-        label, score = detect_toxicity_huggingface(message.content)
-
-        # Hugging Faceで検出された場合の処理
-        if label is not None and score is not None:
-            if label == "toxic" and score > 0.3:
-                try:
-                    await message.delete()  # メッセージを削除
-                    await message.author.timeout(timedelta(minutes=30), reason="Hugging Face検出: 暴言または脅迫が検出されました。")
-                    await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
-                except Exception as e:
-                    print(f"タイムアウト適用エラー: {e}")
-        else:
-            print("Hugging Faceで検出されませんでした。")
-
-        # メッセージの処理を次のイベントに渡す
-        await self.bot.process_commands(message)
+            # 必要であればキックやバンを追加可能
+            # await message.author.kick(reason="不適切な発言の使用")
 
 def setup(bot):
     bot.add_cog(monitoring(bot))
