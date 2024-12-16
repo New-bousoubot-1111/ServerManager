@@ -251,15 +251,7 @@ def generate_map(tsunami_alert_areas, data):
                 idx = gdf[gdf[GEOJSON_REGION_FIELD] == matched_region].index[0]
                 gdf.at[idx, "color"] = ALERT_COLORS.get(alert_type, "white")
                 tsunami_alert_regions.append((gdf.at[idx, "geometry"], alert_type))
-        # 海岸線データの読み込み
-        print("海岸線データを読み込み中...")
-        coastline_gdf = gpd.read_file("images/coastline.geojson")  # 海岸線のデータ
-        coastline_gdf["color"] = "#ffffff"  # 初期色: 白
-
-        # 海岸線に色を塗る処理
-        print("隣接する海岸線を特定して色を塗っています...")
-        color_adjacent_coastlines(tsunami_alert_regions, coastline_gdf, ALERT_COLORS)
-
+        
         # 地図の描画
         print("地図を描画中...")
         fig, ax = plt.subplots(figsize=(15, 18))
@@ -268,7 +260,7 @@ def generate_map(tsunami_alert_areas, data):
         ax.set_xlim([122, 153])  # 東経122度～153度（日本全体をカバー）
         ax.set_ylim([20, 46])    # 北緯20度～46度（南西諸島から北海道まで）
 
-         # 地域と海岸線をプロット
+        # 地域と海岸線をプロット
         gdf.plot(ax=ax, color=gdf["color"], edgecolor="black", linewidth=0.5)
         coastline_gdf.plot(ax=ax, color=coastline_gdf["color"], linewidth=1.5)
 
@@ -282,8 +274,13 @@ def generate_map(tsunami_alert_areas, data):
         plt.close()
 
         # 発表時刻の取得
-        tsunami_time3 = parser.parse(data.get("time", "不明"))
-        text_time = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
+        try:
+            tsunami_time3 = parser.parse(data.get("time", "不明"))
+            text_time = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
+            print(f"津波発表時刻: {text_time}")  # 発表時刻の確認
+        except Exception as e:
+            print(f"発表時刻の取得に失敗しました: {e}")
+            text_time = "不明"
 
         # 文字を追加
         output_path = "images/tsunami.png"
