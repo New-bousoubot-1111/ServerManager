@@ -34,8 +34,10 @@ def detect_toxicity_huggingface(text):
         else:
             print(f"Error: Unexpected status code {response.status_code}")
 
-    except Exception as e:
+    except requests.exceptions.RequestException as e:  # HTTPリクエストエラーをキャッチ
         print(f"Error during API request: {e}")
+    except Exception as e:  # その他の例外をキャッチ
+        print(f"Unexpected error: {e}")
     return None, None
 
 # VADERを使って感情分析を実施
