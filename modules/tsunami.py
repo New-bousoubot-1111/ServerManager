@@ -283,11 +283,11 @@ def generate_map(tsunami_alert_areas):
         plt.savefig(temp_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
 
-        # 文字を追加
         output_path = "images/tsunami.png"
-        text = "最新の津波情報"
-        font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-        add_text_image(temp_path, output_path, text, font_path, time_text=tsunami_time.strftime('%Y年%m月%d日 %H時%M分'))
+        text = "津波情報"
+        font_path = "json/NotoSansJP-Regular.ttf"
+        tsunami_time3 = parser.parse(data.get("time", "不明"))
+        add_text_image(temp_path, output_path, text, font_path, time_text=tsunami_time3.strftime('%Y年%m月%d日 %H時%M分'))
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
 
