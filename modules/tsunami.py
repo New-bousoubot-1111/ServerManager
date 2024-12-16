@@ -233,7 +233,7 @@ def add_text_image(image_path, output_path, text, text_time, font_path="json/Not
     except Exception as e:
         print("エラーが発生しました:", e)
 
-def generate_map(tsunami_alert_areas):
+def generate_map(tsunami_alert_areas, data):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
@@ -280,15 +280,16 @@ def generate_map(tsunami_alert_areas):
         os.makedirs(os.path.dirname(temp_path), exist_ok=True)
         plt.savefig(temp_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
-        for area in data.get("areas", []):
-            tsunami_time3 = parser.parse(data.get("time", "不明"))
-            text_time = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
-            # 文字を追加
-            output_path = "images/tsunami.png"
-            text = "最新の津波情報"
-            text_time = text_time
-            font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
-            add_text_image(temp_path, output_path, text, text_time, font_path)
+
+        # 発表時刻の取得
+        tsunami_time3 = parser.parse(data.get("time", "不明"))
+        text_time = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
+
+        # 文字を追加
+        output_path = "images/tsunami.png"
+        text = "最新の津波情報"
+        font_path = "json/NotoSansJP-Regular.ttf"  # フォントのパス
+        add_text_image(temp_path, output_path, text, text_time, font_path)
 
         print(f"地図が正常に保存されました: {output_path}")
         return output_path
