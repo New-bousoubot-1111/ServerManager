@@ -44,7 +44,7 @@ async def handle_violation(bot: commands.Bot, message: nextcord.Message):
             # 1回目の処罰：1時間のタイムアウト
             await member.timeout(timedelta(hours=1), reason="スパム行為 - 1回目")
             embed = nextcord.Embed(
-                description=f"{member.mention} がスパム行為のため、1時間タイムアウトされました。",
+                description=f"{member.mention}はスパム行為のため、1時間タイムアウトされました。",
                 color=0xFFFF00,
             )
             await channel.send(embed=embed)
@@ -53,7 +53,7 @@ async def handle_violation(bot: commands.Bot, message: nextcord.Message):
             # 2回目の処罰：1日のタイムアウト
             await member.timeout(timedelta(days=1), reason="スパム行為 - 2回目")
             embed = nextcord.Embed(
-                description=f"{member.mention} がスパム行為のため、1日タイムアウトされました。",
+                description=f"{member.mention}はスパム行為のため、1日タイムアウトされました。",
                 color=0xFFA500,
             )
             await channel.send(embed=embed)
@@ -62,7 +62,7 @@ async def handle_violation(bot: commands.Bot, message: nextcord.Message):
             # 3回目の処罰：サーバーからのキック
             await member.kick(reason="スパム行為 - 3回目")
             embed = nextcord.Embed(
-                description=f"{member.mention} がスパム行為のため、サーバーからキックされました。",
+                description=f"{member.mention}はスパム行為のため、サーバーからキックされました。",
                 color=0xFF4500,
             )
             await channel.send(embed=embed)
@@ -71,7 +71,7 @@ async def handle_violation(bot: commands.Bot, message: nextcord.Message):
             # 4回目以降の処罰：サーバーからのバン
             await member.ban(reason="スパム行為 - 4回目以上")
             embed = nextcord.Embed(
-                description=f"{member.mention} がスパム行為のため、サーバーからバンされました。",
+                description=f"{member.mention}はスパム行為のため、サーバーからバンされました。",
                 color=0xFF0000,
             )
             await channel.send(embed=embed)
@@ -101,7 +101,7 @@ async def spam_check(bot: commands.Bot, message: nextcord.Message) -> None:
     bot.loop.call_later(SPAM_TIMEOUT, asyncio.create_task, remove_message())
 
     # スパムとみなす閾値を超えたか判定
-    if len(messages[user_id]) > 5:  # 例: 5メッセージ以上送信するとスパム
+    if len(messages[user_id]) > 10:  # 例: 5メッセージ以上送信するとスパム
         await handle_violation(bot, message)
         await delete_messages(message.channel, messages[user_id])
         messages[user_id].clear()  # スパム検出後、メッセージリストをクリア
