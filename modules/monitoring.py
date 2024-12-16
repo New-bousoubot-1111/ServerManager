@@ -32,13 +32,11 @@ def detect_toxicity_huggingface(text):
                     return label, score
         else:
             print(f"Error: Unexpected status code {response.status_code}")
-
     except requests.exceptions.RequestException as e:  # HTTPリクエストエラーをキャッチ
         print(f"Error during API request: {e}")
-        return None, None
     except Exception as e:  # その他の例外をキャッチ
         print(f"Unexpected error: {e}")
-        return None, None
+    return None, None  # 何も検出されなかった場合、Noneを返す
 
 # VADERを使って感情分析を実施
 def detect_sentiment_vader(text):
@@ -79,14 +77,17 @@ class monitoring(commands.Cog):
         # もしVADERで検出されなかった場合、Hugging Faceで再度検出
         label, score = detect_toxicity_huggingface(message.content)
 
-        # Hugging Faceで暴言が検出された場合
-        if label == "toxic" and score > 0.3:
-            try:
-                await message.delete()  # メッセージを削除
-                await message.author.timeout(timedelta(minutes=30), reason="Hugging Face検出: 暴言または脅迫が検出されました。")
-                await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
-            except Exception as e:
-                print(f"タイムアウト適用エラー: {e}")
+        # Hugging Faceで検出された場合の処理
+        if label is not None and score is not None:
+            if label == "toxic" and score > 0.3:
+                try:
+                    await message.delete()  # メッセージを削除
+                    await message.author.timeout(timedelta(minutes=30), reason="Hugging Face検出: 暴言または脅迫が検出されました。")
+                    await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
+                except Exception as e:
+                    print(f"タイムアウト適用エラー: {e}")
+        else:
+            print("Hugging Faceで検出されませんでした。")
 
         # メッセージの処理を次のイベントに渡す
         await self.bot.process_commands(message)
