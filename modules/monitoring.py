@@ -16,16 +16,14 @@ class monitoring(commands.Cog):
 
         # OpenAI APIでメッセージを解析 (新しいインターフェースを使用)
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.completions.create(
                 model="gpt-3.5-turbo",  # 使用するモデルを指定
-                messages=[
-                    {"role": "system", "content": "あなたは親切なアシスタントです。"},
-                    {"role": "user", "content": message.content}
-                ]
+                prompt=f"以下のメッセージが不適切かどうか判定してください:\n\n{message.content}\n\n不適切ならば「はい」、適切ならば「いいえ」と答えてください。",
+                max_tokens=10
             )
 
-            result = response['choices'][0]['message']['content'].strip()
-            if "不適切" in result:  # 「不適切」と判定された場合
+            result = response['choices'][0]['text'].strip()
+            if result == "はい":  # 「不適切」と判定された場合
                 await message.delete()  # メッセージを削除
                 await message.channel.send(f"{message.author.mention} 不適切な言葉が検出されました。")
                 
