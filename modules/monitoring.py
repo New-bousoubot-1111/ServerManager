@@ -1,18 +1,25 @@
-from transformers import pipeline
 import nextcord
 from nextcord.ext import commands
-from datetime import timedelta
-import tensorflow as tf
-import os
+import requests
+import json
 
-# TensorFlowバージョンを表示して確認
-print(f"TensorFlow version: {tf.__version__}")
+API_KEY = "YOUR_PERSPECTIVE_API_KEY"  # ここにAPIキーを入れてください
 
-# GPUを無効化
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+def check_toxicity(text):
+    url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "comment": {"text": text},
+        "languages": ["ja"],
+        "requestedAttributes": {"TOXICITY": {}},
+    }
+    params = {"key": API_KEY}
 
-# 毒性検出モデルをロード
-toxicity_classifier = pipeline("text-classification", model="unitary/toxic-bert")
+    response = requests.post(url, headers=headers, params=params, json=data)
+    response_json = response.json()
+
+    toxicity_score = response_json["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
+    return toxicity_score
 
 class monitoring(commands.Cog):
     def __init__(self, bot):
@@ -20,7 +27,7 @@ class monitoring(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print("| AI Profanity Filter Loaded |")
+        print("| Profanity Filter Loaded |")
 
     @commands.Cog.listener()
     async def on_message(self, message: nextcord.Message):
@@ -28,26 +35,17 @@ class monitoring(commands.Cog):
         if message.author.bot or message.author.guild_permissions.administrator:
             return
 
-        try:
-            # メッセージを分析
-            result = toxicity_classifier(message.content)
-            toxicity_score = result[0]["score"]
-            label = result[0]["label"]
+        # Perspective APIでメッセージをチェック
+        toxicity_score = check_toxicity(message.content)
 
-            # 毒性スコアが高い場合にタイムアウトを適用
-            if label == "LABEL_1" and toxicity_score > 0.8:  # 'LABEL_1'が毒性があるメッセージを示す
-                # タイムアウト処理（管理者権限がある場合はスキップ）
-                if not message.author.guild_permissions.administrator:
-                    await message.author.timeout(timedelta(hours=1), reason="暴言または脅迫が検出されました。")
-                    embed = nextcord.Embed(
-                        description=f"{message.author.mention} 暴言/脅迫が検出されたため、1時間のタイムアウトを適用しました。",
-                        color=0xFF0000,
-                    )
-                    await message.channel.send(embed=embed)
-                    await message.delete()
-        except Exception as e:
-            print(f"AIエラー: {e}")
+        if toxicity_score > 0.8:  # スコアが0.8を超えるとタイムアウト
+            await message.author.timeout(timedelta(hours=1), reason="暴言または脅迫が検出されました。")
+            embed = nextcord.Embed(
+                description=f"{message.author.mention} 暴言/脅迫が検出されたため、1時間のタイムアウトを適用しました。",
+                color=0xFF0000,
+            )
+            await message.channel.send(embed=embed)
+            await message.delete()
 
-# Botのセットアップ
 def setup(bot):
     bot.add_cog(monitoring(bot))
