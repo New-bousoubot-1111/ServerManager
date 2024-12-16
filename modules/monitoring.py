@@ -1,25 +1,28 @@
 import nextcord
 from nextcord.ext import commands
 import requests
-import json
+from datetime import timedelta
 
-API_KEY = "YOUR_PERSPECTIVE_API_KEY"  # ここにAPIキーを入れてください
+# Hugging Face APIキー
+API_KEY = "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"
 
-def check_toxicity(text):
-    url = "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "comment": {"text": text},
-        "languages": ["ja"],
-        "requestedAttributes": {"TOXICITY": {}},
-    }
-    params = {"key": API_KEY}
+# Hugging Faceの感情分析用APIエンドポイント
+API_URL = "https://api-inference.huggingface.co/models/unitary/toxic-bert"
 
-    response = requests.post(url, headers=headers, params=params, json=data)
-    response_json = response.json()
+# ユーザーが送信したメッセージの暴言を検出する関数
+def detect_toxicity(text):
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    payload = {"inputs": text}
 
-    toxicity_score = response_json["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
-    return toxicity_score
+    response = requests.post(API_URL, headers=headers, json=payload)
+    if response.status_code == 200:
+        result = response.json()
+        label = result[0]["label"]
+        score = result[0]["score"]
+        return label, score
+    else:
+        print(f"Error: {response.status_code}")
+        return None, None
 
 class monitoring(commands.Cog):
     def __init__(self, bot):
@@ -31,21 +34,24 @@ class monitoring(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: nextcord.Message):
-        # ボットや管理者のメッセージを無視
+        # ボットのメッセージや管理者のメッセージは無視
         if message.author.bot or message.author.guild_permissions.administrator:
             return
 
-        # Perspective APIでメッセージをチェック
-        toxicity_score = check_toxicity(message.content)
+        # メッセージの内容をHugging Face APIで分析
+        label, score = detect_toxicity(message.content)
 
-        if toxicity_score > 0.8:  # スコアが0.8を超えるとタイムアウト
-            await message.author.timeout(timedelta(hours=1), reason="暴言または脅迫が検出されました。")
-            embed = nextcord.Embed(
-                description=f"{message.author.mention} 暴言/脅迫が検出されたため、1時間のタイムアウトを適用しました。",
-                color=0xFF0000,
-            )
-            await message.channel.send(embed=embed)
-            await message.delete()
+        # 結果に基づいてタイムアウトや警告を行う
+        if label == "TOXIC" and score > 0.8:  # スコアが0.8以上で暴言と見なす
+            try:
+                await message.author.timeout(timedelta(minutes=30), reason="暴言または脅迫が検出されました。")
+                await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
+                await message.delete()
+            except Exception as e:
+                print(f"タイムアウト適用エラー: {e}")
+
+        # メッセージの処理を次のイベントに渡す
+        await self.bot.process_commands(message)
 
 def setup(bot):
     bot.add_cog(monitoring(bot))
