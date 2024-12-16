@@ -9,7 +9,6 @@ API_KEY = "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"
 # Hugging Faceの感情分析用APIエンドポイント
 API_URL = "https://api-inference.huggingface.co/models/unitary/toxic-bert"
 
-# ユーザーが送信したメッセージの暴言を検出する関数
 def detect_toxicity(text):
     headers = {"Authorization": f"Bearer {API_KEY}"}
     payload = {"inputs": text}
@@ -18,16 +17,14 @@ def detect_toxicity(text):
     if response.status_code == 200:
         result = response.json()
         
-        # 最もスコアの高いラベルを取得
-        highest_label = result[0][0]  # ラベル1番目
-        highest_score = highest_label["score"]
-        highest_label_name = highest_label["label"]
+        # 複数のラベルを検出
+        for label_info in result[0]:
+            label = label_info["label"]
+            score = label_info["score"]
+            if label in ["toxic", "insult", "threat"] and score > 0.3:
+                return label, score
+    return None, None
 
-        print(f"Label: {highest_label_name}, Score: {highest_score}")
-        return highest_label_name, highest_score
-    else:
-        print(f"Error: {response.status_code}")
-        return None, None
 
 class monitoring(commands.Cog):
     def __init__(self, bot):
