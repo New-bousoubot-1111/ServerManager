@@ -1,18 +1,20 @@
 import nextcord
 from nextcord.ext import commands
-from transformers import pipeline
+from transformers import BertTokenizer, BertForSequenceClassification, pipeline
 
-# 感情分析パイプラインの初期化
-# ここでは `cl-tohoku/bert-base-japanese` モデルを使用
-classifier = pipeline("text-classification", model="Mizuiro-sakura/luke-japanese-large-sentiment-analysis-wrime")
+# Tokenizerとモデルを初期化
+model_name = "cl-tohoku/bert-base-japanese"
+tokenizer = BertTokenizer.from_pretrained(model_name)
+model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+# 感情分析パイプライン
+classifier = pipeline("text-classification", model=model, tokenizer=tokenizer)
 
 # 不適切な内容を判定する関数
 def check_inappropriate_content(text):
-    # メッセージの感情を分析
     results = classifier(text)
     for result in results:
-        # スコアが高く、否定的 (negative) な感情と判断された場合
-        if result['label'] == 'negative' and result['score'] > 0.8:
+        if result['label'] == 'LABEL_1' and result['score'] > 0.8:  # スコアとラベルを調整
             return True
     return False
 
