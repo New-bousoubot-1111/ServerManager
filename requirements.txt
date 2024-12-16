@@ -13,3 +13,4 @@ matplotlib
 geopandas
 fuzzywuzzy
 shapely
+transformers
