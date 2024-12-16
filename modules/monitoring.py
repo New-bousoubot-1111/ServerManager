@@ -2,6 +2,9 @@ from transformers import pipeline
 import nextcord
 from nextcord.ext import commands
 from datetime import timedelta
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # GPUを無効化
+
 
 # 毒性検出モデルをロード
 toxicity_classifier = pipeline("text-classification", model="unitary/toxic-bert")
