@@ -233,7 +233,7 @@ def add_text_image(image_path, output_path, text, text_time, font_path="json/Not
     except Exception as e:
         print("エラーが発生しました:", e)
 
-def generate_map(tsunami_alert_areas):
+def generate_map(tsunami_alert_areas, data):
     """津波警報地図を生成し、ローカルパスを返す"""
     print("地図生成中...")
     geojson_names = gdf[GEOJSON_REGION_FIELD].tolist()
