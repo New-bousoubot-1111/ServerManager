@@ -200,6 +200,7 @@ def add_text_image(image_path, output_path, text, data, font_path="json/NotoSans
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
             outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
         )
+        if data.get("areas"):
         for area in data.get("areas", []):
             tsunami_time3 = parser.parse(data.get("time", "不明"))
             formatted_time3 = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
