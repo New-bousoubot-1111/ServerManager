@@ -186,10 +186,12 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
         white_box_width, white_box_height = red_box_width // 1.7, 500  # 白枠の横幅を半分に、縦幅はそのまま
 
         # フォントの設定
-        font_size_title = 120  # タイトルのフォントサイズを大きく
+        font_size_title = 100  # タイトルのフォントサイズを大きく
+        font_size_time_text = 60
         font_size_text = 80  # テキストのフォントサイズを大きく
         try:
             title_font = ImageFont.truetype(font_path, font_size_title)
+            time_font = ImageFont.truetype(font_path, font_size_time_text)
             text_font = ImageFont.truetype(font_path, font_size_text)
         except Exception:
             print("フォントが見つからないため、デフォルトフォントを使用します。")
@@ -200,7 +202,11 @@ def add_text_image(image_path, output_path, text, font_path="json/NotoSansJP-Reg
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
             outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
         )
-        draw.text((red_box_x + 80, red_box_y + 80), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
+        tsunami_time3 = parser.parse(data.get("time", "不明"))
+        formatted_time3 = tsunami_time3.strftime('%Y年%m月%d日 %H時%M分')
+        draw.text((red_box_x + 80, red_box_y + 40), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
+        if time_text:
+            draw.text((red_box_x + 80, red_box_y + 80), tsunami_time3, fill=(0, 0, 0), font=time_font)  # タイトルの下に配置
 
         # ----- 白色枠（凡例エリア） -----
         draw.rectangle(
