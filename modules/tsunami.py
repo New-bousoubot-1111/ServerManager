@@ -200,8 +200,8 @@ def add_text_image(image_path, output_path, text_area, font_path="json/NotoSansJ
             [(red_box_x, red_box_y), (red_box_x + red_box_width, red_box_y + red_box_height)],
             outline=(255, 0, 0), width=15, fill=(255, 255, 255)  # 赤枠、背景は白
         )
-        draw.text((red_box_x + 80, red_box_y + 40), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
-        draw.text((red_box_x + 80, red_box_y + 80), text_area, fill=(0, 0, 0), font=title_font)  # 黒文字
+        draw.text((red_box_x + 80, red_box_y + 20), "津波情報", fill=(0, 0, 0), font=title_font)  # 黒文字
+        draw.text((red_box_x + 80, red_box_y + 120), text_area, fill=(0, 0, 0), font=title_font)  # 黒文字
         
         # ----- 白色枠（凡例エリア） -----
         draw.rectangle(
