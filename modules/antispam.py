@@ -147,7 +147,7 @@ async def spam_check(bot: commands.Bot, message: nextcord.Message) -> None:
         messages[user_id].clear()
 
 
-class antidpam(commands.Cog):
+class antispam(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
