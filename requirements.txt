@@ -14,4 +14,4 @@ geopandas
 fuzzywuzzy
 shapely
 transformers
-vaderSentiment
+torch
