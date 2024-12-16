@@ -16,7 +16,7 @@ class monitoring(commands.Cog):
 
         # OpenAI APIでメッセージを解析 (新しいインターフェースを使用)
         try:
-            response = openai.chat.Completion.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",  # 使用するモデルを指定
                 messages=[
                     {"role": "system", "content": "あなたは親切なアシスタントです。"},
