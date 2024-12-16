@@ -2,6 +2,8 @@ from transformers import pipeline
 import nextcord
 from nextcord.ext import commands
 from datetime import timedelta
+import tensorflow as tf
+print(tf.__version__)  # TensorFlowがインストールされている場合、バージョンが表示されます
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # GPUを無効化
 
