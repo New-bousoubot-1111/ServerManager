@@ -6,7 +6,7 @@ from datetime import timedelta
 # 毒性検出モデルをロード
 toxicity_classifier = pipeline("text-classification", model="unitary/toxic-bert")
 
-class transformers(commands.Cog):
+class monitoring(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -40,4 +40,4 @@ class transformers(commands.Cog):
             print(f"AIエラー: {e}")
 
 def setup(bot):
-    bot.add_cog(transformers(bot))
+    bot.add_cog(monitoring(bot))
