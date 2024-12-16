@@ -13,18 +13,25 @@ def detect_toxicity(text):
     headers = {"Authorization": f"Bearer {API_KEY}"}
     payload = {"inputs": text}
 
-    response = requests.post(API_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        result = response.json()
-        
-        # 複数のラベルを検出
-        for label_info in result[0]:
-            label = label_info["label"]
-            score = label_info["score"]
-            if label in ["toxic", "insult", "threat"] and score > 0.3:
-                return label, score
-    return None, None
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload)
+        response.raise_for_status()  # HTTPエラーがあれば例外をスロー
 
+        result = response.json()
+
+        if response.status_code == 200:
+            for label_info in result[0]:
+                label = label_info["label"]
+                score = label_info["score"]
+                print(f"Label: {label}, Score: {score}")  # デバッグ用出力
+                if label in ["toxic", "insult", "threat"] and score > 0.3:
+                    return label, score
+        else:
+            print(f"Error: Unexpected status code {response.status_code}")
+
+    except Exception as e:
+        print(f"Error during API request: {e}")
+    return None, None
 
 class monitoring(commands.Cog):
     def __init__(self, bot):
@@ -44,7 +51,7 @@ class monitoring(commands.Cog):
         label, score = detect_toxicity(message.content)
 
         # 結果に基づいてタイムアウトや警告を行う
-        if label == "toxic" and score > 0.3:  # スコアを0.3に変更して感度を上げる
+        if label == "toxic" and score > 0.006:  # スコアを0.3に変更して感度を上げる
             try:
                 await message.author.timeout(timedelta(minutes=30), reason="暴言または脅迫が検出されました。")
                 await message.channel.send(f"{message.author.mention} 暴言/脅迫が検出されたため、30分のタイムアウトを適用しました。")
