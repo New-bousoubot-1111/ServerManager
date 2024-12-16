@@ -283,6 +283,7 @@ def generate_map(tsunami_alert_areas):
         plt.savefig(temp_path, bbox_inches="tight", transparent=False, dpi=300)
         plt.close()
 
+    for area in data.get("areas", []):
         output_path = "images/tsunami.png"
         text = "津波情報"
         font_path = "json/NotoSansJP-Regular.ttf"
