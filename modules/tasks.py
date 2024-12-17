@@ -49,6 +49,7 @@ class tasks(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(Fore.BLUE + "|tasks         |" + Fore.RESET)
+        print(Fore.BLUE + "________________" + Fore.RESET)
         await self.setup_db()
         self.news_info.start()
 
