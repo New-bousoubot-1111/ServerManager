@@ -32,37 +32,6 @@ class command(commands.Cog):
   async def ping(self,ctx):
     embed=nextcord.Embed(title="ping", description=f"BOTのpingは**{round(self.bot.latency *1000)}**です。",color=color)
     await ctx.send(embed=embed)
-
-  #eew
-  @nextcord.slash_command(description="地震情報を表示します")
-  async def eew(self,ctx):
-    request = requests.get(f'https://api.p2pquake.net/v2/history?codes=551&limit=1')
-    response = request.json()[0]
-    data = response['earthquake']
-    hypocenter = data['hypocenter']
-    if request.status_code == 200:
-      embed=nextcord.Embed(title="地震情報",color=color)
-      embed.add_field(name="震源地",value=hypocenter['name'],inline=False)
-      embed.add_field(name="最大震度",value=round(data['maxScale']/10),inline=False)
-      embed.add_field(name="発生時刻",value=data['time'],inline=False)
-      embed.add_field(name="マグニチュード",value=hypocenter['magnitude'],inline=False)
-      embed.add_field(name="震源の深さ",value=f"{hypocenter['depth']}Km",inline=False)
-      await ctx.send(embed=embed)
-    else:
-      await ctx.send("APIリクエストでエラーが発生しました")
-  #eew2
-  @nextcord.slash_command(description="地震情報を表示します(文式)")
-  async def eew2(self,ctx):
-    request = requests.get("https://api.p2pquake.net/v2/history?codes=551&limit=1")
-    response = request.json()[0]
-    data = response['earthquake']
-    hypocenter = data['hypocenter']
-    if request.status_code == 200:
-      embed=nextcord.Embed(title="地震情報",color=color)
-      embed.add_field(name=f"{data['time']}頃、**{hypocenter['name']}**で地震がありました",value=f"最大震度は**{round(data['maxScale']/10)}**、震源の深さは**{hypocenter['depth']}Km**、マグニチュードは**{hypocenter['magnitude']}**です",inline=False)
-      await ctx.send(embed=embed)
-    else:
-      await ctx.send("APIリクエストでエラーが発生しました")
       
   @nextcord.slash_command(description="botの情報やコマンドを表示します")
   async def help(self,ctx):
