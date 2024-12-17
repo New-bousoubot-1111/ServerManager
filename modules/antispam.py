@@ -153,7 +153,7 @@ class antispam(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(Fore.BLUE + "| AntiSpam Cog Ready |" + Fore.RESET)
+        print(Fore.BLUE + "|antispam      |" + Fore.RESET)
 
     @commands.Cog.listener()
     async def on_message(self, message: nextcord.Message):
