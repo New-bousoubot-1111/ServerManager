@@ -42,4 +42,5 @@ class api(commands.Cog):
 async def on_ready():
     print(f"Bot is ready. Logged in as {bot.user}")
 
-bot.add_cog(MentionResponder(bot))
+def setup(bot):
+    bot.add_cog(api(bot))
