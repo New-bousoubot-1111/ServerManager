@@ -1,12 +1,12 @@
 import os
 import nextcord
 from nextcord.ext import commands
-import openai
+from openai import OpenAI
 
 # OpenAI APIキーを環境変数から取得
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-class gpt(commands.Cog):
+class ApiCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -23,8 +23,8 @@ class gpt(commands.Cog):
                 user_message = message.content.replace(f"<@{self.bot.user.id}>", "").strip()
 
                 # OpenAI APIにリクエストを送信
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                completion = openai_client.chat.completions.create(
+                    model="gpt-4o-mini",  # 使用するモデル
                     messages=[
                         {"role": "system", "content": "あなたは親切で知識豊富なアシスタントです。"},
                         {"role": "user", "content": user_message}
@@ -32,7 +32,7 @@ class gpt(commands.Cog):
                 )
 
                 # OpenAIの応答を取得
-                reply = response['choices'][0]['message']['content'].strip()
+                reply = completion.choices[0].message["content"].strip()
 
                 # メッセージに返信
                 await message.reply(reply)
