@@ -8,10 +8,5 @@ requests
 deepl
 asyncpg
 python-dateutil
-pytz
-matplotlib
-geopandas
-fuzzywuzzy
-shapely
 transformers
 torch
