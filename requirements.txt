@@ -8,4 +8,4 @@ requests
 deepl
 asyncpg
 transformers
-torch
+tensorflow
