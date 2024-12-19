@@ -6,36 +6,42 @@ import openai
 # OpenAI APIキーを環境変数から取得
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-class api(commands.Cog):
+class gpt(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        # Bot自身のメッセージは無視
-        if message.author.bot:
+        # Bot自身のメッセージやDMは無視
+        if message.author.bot or isinstance(message.channel, nextcord.DMChannel):
             return
 
         # Botへのメンションに反応
         if self.bot.user in message.mentions:
             try:
-                # ユーザーのメッセージをAPIに送信
+                # メンション部分を削除して純粋なメッセージを取得
+                user_message = message.content.replace(f"<@{self.bot.user.id}>", "").strip()
+
+                # OpenAI APIにリクエストを送信
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "あなたは親切で知識豊富なアシスタントです。"},
-                        {"role": "user", "content": message.content}
+                        {"role": "user", "content": user_message}
                     ]
                 )
 
-                # 応答を取得して送信
+                # OpenAIの応答を取得
                 reply = response['choices'][0]['message']['content'].strip()
+
+                # メッセージに返信
                 await message.reply(reply)
 
             except Exception as e:
-                # エラー処理
+                # エラー時の処理
                 print(f"Error: {e}")
                 await message.reply("申し訳ありませんが、応答中にエラーが発生しました。")
 
+# Cogのセットアップ
 def setup(bot):
-    bot.add_cog(api(bot))
+    bot.add_cog(gpt(bot))
