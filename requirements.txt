@@ -9,4 +9,3 @@ deepl
 asyncpg
 transformers
 torch
-sqlite3
