@@ -37,10 +37,5 @@ class api(commands.Cog):
                 print(f"Error: {e}")
                 await message.reply("申し訳ありませんが、応答中にエラーが発生しました。")
 
-# Cogの読み込み
-@bot.event
-async def on_ready():
-    print(f"Bot is ready. Logged in as {bot.user}")
-
 def setup(bot):
     bot.add_cog(api(bot))
