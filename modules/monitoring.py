@@ -7,7 +7,7 @@ class monitoring(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         # OpenAIのAPIキー
-        openai.api_key = os.getenv("openai_key")
+        openai.api_key = os.getenv("OPENAI_API_KEY")
 
     @commands.Cog.listener()
     async def on_message(self, message):
