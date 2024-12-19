@@ -6,7 +6,7 @@ from openai import OpenAI
 # OpenAI APIキーを環境変数から取得
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-class ApiCog(commands.Cog):
+class gpt(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
