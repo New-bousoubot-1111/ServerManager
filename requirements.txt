@@ -7,6 +7,4 @@ flask
 requests
 deepl
 asyncpg
-transformers
-tensorflow
-tf-keras
+tensorflow==2.11.0
