@@ -9,3 +9,4 @@ deepl
 asyncpg
 transformers
 tensorflow
+tf-keras
